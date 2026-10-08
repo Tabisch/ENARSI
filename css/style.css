@@ -169,6 +169,10 @@ button.ghost { background: transparent; color: var(--text); border: 1px solid va
 .results-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
 
 .review-list { display: grid; gap: 14px; margin-top: 12px; }
+/* Grid items default to min-width: auto, so a long exhibit line would widen the
+   whole item past the card. Let them shrink; the <pre> scrolls on its own. */
+.review-list > *, .options > *, .topic-list > * { min-width: 0; }
+.review-item li, .option span { overflow-wrap: anywhere; }
 .review-item { border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
 .review-item.wrong { border-left: 4px solid var(--bad); }
 .review-item.right { border-left: 4px solid var(--ok); }
