@@ -1362,7 +1362,7 @@ ip route 0.0.0.0 0.0.0.0 198.51.100.1 10`,
   {
     id: "netflow-1",
     domain: "Infrastructure Services",
-    topic: "NetFlow",
+    topic: "Flexible NetFlow",
     question: "In Flexible NetFlow, which component defines the key and non-key fields of a flow?",
     options: ["Flow exporter", "Flow monitor", "Flow record", "Flow sampler"],
     answer: [2],
@@ -1372,7 +1372,7 @@ ip route 0.0.0.0 0.0.0.0 198.51.100.1 10`,
   {
     id: "netflow-2",
     domain: "Infrastructure Services",
-    topic: "NetFlow",
+    topic: "Flexible NetFlow",
     question:
       "Refer to the exhibit. No flows are exported to the collector. What is missing?",
     exhibit:
@@ -1453,5 +1453,890 @@ interface GigabitEthernet0/0
     answer: [3],
     explanation:
       "Assurance collects telemetry and provides health scores, issues and guided remediation for devices, clients and applications."
+  },
+
+  // ───────────────────────── Batch 2: focus topics ─────────────────────────
+
+  // OSPF hello debug (R / C)
+  {
+    id: "ospf-9",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF",
+    question:
+      "Refer to the exhibit. What do the R and C values in the debug output represent?",
+    exhibit:
+`R1# debug ip ospf hello
+OSPF-1 HELLO Gi0/0: Mismatched hello parameters from 10.1.12.2
+OSPF-1 HELLO Gi0/0: Dead R 120 C 40, Hello R 30 C 10 Mask R 255.255.255.0 C 255.255.255.0`,
+    options: [
+      "R = value Received in the neighbor's hello; C = value Configured on the local interface",
+      "R = Remote router ID; C = Current DR",
+      "R = Required value; C = Calculated value",
+      "R = value on the Root (DR); C = value on the Client (DROTHER)"
+    ],
+    answer: [0],
+    explanation:
+      "R is the value received from the neighbor (10.1.12.2), and C is the value configured locally on R1's interface. Here the neighbor uses 30/120 (point-to-multipoint/NBMA defaults) and R1 uses 10/40 (broadcast/point-to-point defaults)."
+  },
+  {
+    id: "ospf-10",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF",
+    question:
+      "Refer to the exhibit. R1 and R2 are connected over an Ethernet segment using the default OSPF network type. Which action allows the adjacency to form?",
+    exhibit:
+`R1# debug ip ospf hello
+OSPF-1 HELLO Gi0/0: Rcv hello from 2.2.2.2 area 0 10.1.12.2
+OSPF-1 HELLO Gi0/0: Mismatched hello parameters from 10.1.12.2
+OSPF-1 HELLO Gi0/0: Dead R 40 C 40, Hello R 10 C 10 Mask R 255.255.255.252 C 255.255.255.0`,
+    options: [
+      "Configure the same subnet mask on both interfaces; R1 uses /24 and R2 uses /30",
+      "Change the hello interval on R2 to 10 seconds",
+      "Change the dead interval on R1 to 40 seconds",
+      "Configure ip ospf mtu-ignore on R1"
+    ],
+    answer: [0],
+    explanation:
+      "Timers match (R = C), but the masks do not. R2 (received) uses 255.255.255.252 and R1 (configured) uses 255.255.255.0. On broadcast networks, OSPF requires the subnet mask to match. Point-to-point networks do not check the mask."
+  },
+  {
+    id: "ospf-11",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF",
+    question:
+      "Refer to the exhibit. Which command on R1 resolves the mismatch without changing R2?",
+    exhibit:
+`R1# debug ip ospf hello
+OSPF-1 HELLO Gi0/0: Mismatched hello parameters from 10.1.12.2
+OSPF-1 HELLO Gi0/0: Dead R 40 C 40, Hello R 10 C 5 Mask R 255.255.255.0 C 255.255.255.0`,
+    options: [
+      "ip ospf hello-interval 10 on R1 Gi0/0",
+      "ip ospf hello-interval 5 on R1 Gi0/0",
+      "ip ospf dead-interval 20 on R1 Gi0/0",
+      "ip ospf network point-to-point on R1 Gi0/0"
+    ],
+    answer: [0],
+    explanation:
+      "C (configured on R1) shows hello 5, while R2 sends hello 10. Dead intervals already match (40). Set R1's hello back to 10."
+  },
+
+  // DHCP
+  {
+    id: "dhcp-4",
+    domain: "Infrastructure Services",
+    topic: "DHCP",
+    question: "In a DHCP relay environment, what does the giaddr field stand for?",
+    options: [
+      "Gateway IP address: the IP address of the relay agent interface that received the client request",
+      "Global interface address: the server's outgoing interface",
+      "Granted IP address: the address being leased to the client",
+      "Group IP address: the multicast group used by DHCP servers"
+    ],
+    answer: [0],
+    explanation:
+      "giaddr = Gateway IP Address. The relay agent (ip helper-address) writes the IP address of the interface on which it received the broadcast. The server selects the pool whose subnet contains giaddr and sends its reply to that address."
+  },
+  {
+    id: "dhcp-5",
+    domain: "Infrastructure Services",
+    topic: "DHCP",
+    question:
+      "Refer to the exhibit. A client on VLAN 30 sends a DHCPDISCOVER. Which giaddr does R1 insert, and which pool does the server use?",
+    exhibit:
+`R1 (relay)
+interface GigabitEthernet0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+ ip helper-address 10.0.0.10
+interface GigabitEthernet0/1
+ ip address 10.0.0.1 255.255.255.0
+
+DHCP server 10.0.0.10
+ip dhcp pool SERVERS
+ network 10.0.0.0 255.255.255.0
+ip dhcp pool VLAN30
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1`,
+    options: [
+      "giaddr 192.168.30.1; pool VLAN30",
+      "giaddr 10.0.0.1; pool SERVERS",
+      "giaddr 10.0.0.1; pool VLAN30",
+      "giaddr 0.0.0.0; pool SERVERS"
+    ],
+    answer: [0],
+    explanation:
+      "The relay sets giaddr to the receiving interface (Gi0/0.30 = 192.168.30.1), not the outgoing interface. That address falls inside the VLAN30 pool, so the client gets an address from 192.168.30.0/24."
+  },
+  {
+    id: "dhcp-6",
+    domain: "Infrastructure Services",
+    topic: "DHCP",
+    question: "Which DHCP header field carries the IP address that the server is offering to the client?",
+    options: ["ciaddr", "yiaddr", "siaddr", "giaddr"],
+    answer: [1],
+    explanation:
+      "ciaddr = client IP address (used when the client already has an address, for example when renewing), yiaddr = 'your' IP address (the address offered or assigned), siaddr = next server IP address, giaddr = gateway (relay agent) IP address."
+  },
+
+  // EIGRP seed metric
+  {
+    id: "eigrp-8",
+    domain: "Layer 3 Technologies",
+    topic: "EIGRP",
+    question:
+      "Which command correctly redistributes OSPF process 1 into classic-mode EIGRP AS 100 with a usable seed metric?",
+    options: [
+      "redistribute ospf 1 metric 10000 100 255 1 1500",
+      "redistribute ospf 1 metric 20",
+      "redistribute ospf 1 subnets",
+      "redistribute ospf 1 metric-type 1"
+    ],
+    answer: [0],
+    explanation:
+      "The EIGRP seed metric is made of five values: bandwidth, delay, reliability, load and MTU. A single metric value, subnets, and metric-type are OSPF-style options and do not set an EIGRP composite metric."
+  },
+  {
+    id: "eigrp-9",
+    domain: "Layer 3 Technologies",
+    topic: "EIGRP",
+    question:
+      "In the command default-metric 10000 100 255 1 1500 under router eigrp 100, what do the values represent, in order?",
+    options: [
+      "Bandwidth (kbps), delay (tens of microseconds), reliability (x/255), load (x/255), MTU (bytes)",
+      "Delay (microseconds), bandwidth (Mbps), load, reliability, MTU",
+      "Bandwidth (bps), delay (ms), reliability (%), load (%), hop count",
+      "K1, K2, K3, K4, K5 weights"
+    ],
+    answer: [0],
+    explanation:
+      "Order: bandwidth in kbps (10000 = 10 Mbps), delay in tens of microseconds (100 = 1000 µs), reliability 0–255 (255 = 100%), load 1–255 (1 = minimal), MTU in bytes."
+  },
+  {
+    id: "eigrp-10",
+    domain: "Layer 3 Technologies",
+    topic: "EIGRP",
+    question:
+      "When redistributed into EIGRP, which two route sources get a valid metric without a seed metric being configured? (Choose two.)",
+    options: ["Connected networks", "Another EIGRP autonomous system", "OSPF", "RIP", "BGP"],
+    answer: [0, 1],
+    explanation:
+      "Connected (and static) routes take their metric from the interface, and routes from another EIGRP AS keep their composite metric. Routes from other protocols such as OSPF, RIP and BGP get an infinite metric unless you set one with metric, default-metric or a route-map."
+  },
+  {
+    id: "eigrp-11",
+    domain: "Layer 3 Technologies",
+    topic: "EIGRP",
+    question:
+      "Refer to the exhibit. Which seed metric is applied to the routes redistributed from RIP and from OSPF?",
+    exhibit:
+`router eigrp 100
+ default-metric 100000 10 255 1 1500
+ redistribute rip metric 1544 2000 255 1 1500
+ redistribute ospf 1`,
+    options: [
+      "RIP routes use 1544 2000 255 1 1500; OSPF routes use 100000 10 255 1 1500",
+      "Both use 100000 10 255 1 1500, because default-metric overrides per-protocol metrics",
+      "Both use 1544 2000 255 1 1500",
+      "OSPF routes are not redistributed because they have no metric keyword"
+    ],
+    answer: [0],
+    explanation:
+      "A metric on a redistribute statement takes precedence over default-metric. default-metric applies to every redistributed source that does not specify its own metric, here OSPF."
+  },
+  {
+    id: "eigrp-12",
+    domain: "Layer 3 Technologies",
+    topic: "EIGRP",
+    question:
+      "In EIGRP named mode, where is the redistribute ospf 1 metric 10000 100 255 1 1500 command entered?",
+    options: [
+      "router eigrp NAME → address-family ipv4 unicast autonomous-system 100 → topology base",
+      "router eigrp NAME → address-family ipv4 unicast autonomous-system 100 → af-interface default",
+      "router eigrp NAME (global level)",
+      "interface configuration mode"
+    ],
+    answer: [0],
+    explanation:
+      "In named mode, redistribution, default-metric, variance, maximum-paths and distribute-lists are configured under topology base. af-interface holds per-interface settings such as hello timers, authentication and summary-address."
+  },
+
+  // Traditional NetFlow
+  {
+    id: "netflow-3",
+    domain: "Infrastructure Services",
+    topic: "NetFlow",
+    question: "Which interface command enables traditional NetFlow collection for traffic arriving on that interface?",
+    options: ["ip flow ingress", "ip flow monitor MON input", "ip flow-export ingress", "netflow enable input"],
+    answer: [0],
+    explanation:
+      "Traditional NetFlow uses ip flow ingress or ip flow egress on the interface. ip flow monitor ... input applies a Flexible NetFlow monitor."
+  },
+  {
+    id: "netflow-4",
+    domain: "Infrastructure Services",
+    topic: "NetFlow",
+    question:
+      "Which two commands are required to collect traditional NetFlow on Gi0/0 and send it to a collector at 10.9.9.9 on UDP port 2055? (Choose two.)",
+    options: [
+      "ip flow-export destination 10.9.9.9 2055 (global)",
+      "ip flow ingress (interface Gi0/0)",
+      "flow exporter EXP (global)",
+      "ip flow monitor EXP input (interface Gi0/0)",
+      "snmp-server host 10.9.9.9 netflow"
+    ],
+    answer: [0, 1],
+    explanation:
+      "Traditional NetFlow needs flow collection on the interface (ip flow ingress/egress) and an export destination (ip flow-export destination <ip> <port>). Optional commands include ip flow-export version 9 and ip flow-export source Loopback0."
+  },
+  {
+    id: "netflow-5",
+    domain: "Infrastructure Services",
+    topic: "NetFlow",
+    question: "Which command displays the flow cache for traditional NetFlow?",
+    options: ["show ip cache flow", "show flow monitor cache", "show ip flow export", "show netflow table"],
+    answer: [0],
+    explanation:
+      "show ip cache flow shows the traditional NetFlow cache, and show ip flow export shows the export settings and statistics. For Flexible NetFlow, use show flow monitor NAME cache."
+  },
+  {
+    id: "netflow-6",
+    domain: "Infrastructure Services",
+    topic: "NetFlow",
+    question: "Which NetFlow export format is template-based and supports IPv6 and MPLS fields?",
+    options: ["Version 1", "Version 5", "Version 7", "Version 9"],
+    answer: [3],
+    explanation:
+      "NetFlow v9 (and IPFIX, which is based on it) uses templates, so it can carry any field, including IPv6 and MPLS labels. v5 has a fixed IPv4-only format."
+  },
+
+  // Flexible NetFlow
+  {
+    id: "fnf-1",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question: "Which command applies the Flexible NetFlow monitor MON to inbound IPv4 traffic on an interface?",
+    options: ["ip flow monitor MON input", "flow monitor MON input", "ip flow ingress MON", "service-policy input MON"],
+    answer: [0],
+    explanation:
+      "Syntax: ip flow monitor NAME {input | output} for IPv4, and ipv6 flow monitor NAME {input | output} for IPv6."
+  },
+  {
+    id: "fnf-2",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question: "Which flow record command adds a non-key field?",
+    options: [
+      "collect counter packets",
+      "match ipv4 source address",
+      "match transport destination-port",
+      "key counter bytes"
+    ],
+    answer: [0],
+    explanation:
+      "match defines key fields, which identify a unique flow. collect defines non-key fields, which are recorded per flow (counters, timestamps and so on)."
+  },
+  {
+    id: "fnf-3",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question:
+      "Refer to the exhibit. Which two statements about this exporter are true? (Choose two.)",
+    exhibit:
+`flow exporter EXP
+ destination 10.9.9.9
+ source Loopback0
+ transport udp 2055
+ export-protocol netflow-v9`,
+    options: [
+      "Export packets are sent to UDP port 2055",
+      "Export packets use the IP address of Loopback0 as their source",
+      "Export packets are sent over TCP",
+      "The exporter uses IPFIX",
+      "The exporter collects flows on Loopback0"
+    ],
+    answer: [0, 1],
+    explanation:
+      "destination = collector IP, source = interface used for the source IP, transport udp = collector port, export-protocol = format (netflow-v5, netflow-v9 or ipfix). An exporter only sends data. A monitor applied to an interface collects it."
+  },
+  {
+    id: "fnf-4",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question: "Which command displays the flows currently stored in the Flexible NetFlow monitor MON?",
+    options: ["show flow monitor MON cache", "show ip cache flow", "show flow record MON", "show flow exporter MON statistics"],
+    answer: [0],
+    explanation:
+      "show flow monitor NAME cache displays the cache entries. show flow exporter [NAME] statistics shows export counters, and show flow interface shows which monitors are applied where."
+  },
+  {
+    id: "fnf-5",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question:
+      "An engineer wants a Flexible NetFlow monitor that captures the same fields as traditional NetFlow without building a custom record. Which command is used under the flow monitor?",
+    options: [
+      "record netflow ipv4 original-input",
+      "record traditional",
+      "record netflow-v5",
+      "record default ipv4"
+    ],
+    answer: [0],
+    explanation:
+      "Flexible NetFlow ships predefined records. netflow ipv4 original-input emulates the traditional ingress NetFlow key fields."
+  },
+  {
+    id: "fnf-6",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question:
+      "Which is the correct dependency order when building a Flexible NetFlow configuration from scratch?",
+    options: [
+      "flow record → flow exporter → flow monitor (references the record and exporter) → apply the monitor to an interface",
+      "flow monitor → flow record → apply the record to an interface → flow exporter",
+      "flow exporter → apply the exporter to an interface → flow record",
+      "flow sampler → flow record → apply the record to an interface"
+    ],
+    answer: [0],
+    explanation:
+      "The monitor ties everything together: under flow monitor you specify record NAME and exporter NAME. Only the monitor is applied to the interface, and samplers are optional."
+  },
+  {
+    id: "fnf-7",
+    domain: "Infrastructure Services",
+    topic: "Flexible NetFlow",
+    question: "Where is the active timeout for long-lived flows configured in Flexible NetFlow?",
+    options: [
+      "Under flow monitor with cache timeout active <seconds>",
+      "Under flow record with collect timeout active",
+      "Under flow exporter with template data timeout",
+      "Under the interface with ip flow timeout"
+    ],
+    answer: [0],
+    explanation:
+      "The cache is part of the monitor: cache timeout active and cache timeout inactive set how often entries are flushed and exported. template data timeout under the exporter controls how often templates are resent."
+  },
+
+  // Summarization
+  {
+    id: "sum-1",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question: "Which is the most specific summary route for networks 172.16.8.0/24 through 172.16.15.0/24?",
+    options: ["172.16.8.0/21", "172.16.8.0/22", "172.16.0.0/20", "172.16.8.0/20"],
+    answer: [0],
+    explanation:
+      "8 through 15 = 8 networks = 2³ → 3 bits borrowed from /24 → /21. The third octet 8 (00001000) is on a multiple-of-8 boundary, so 172.16.8.0/21 covers .8–.15 exactly."
+  },
+  {
+    id: "sum-2",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question:
+      "Refer to the exhibit. R3 is an internal router in area 1. Routers in area 0 still see all four /24 routes. Why?",
+    exhibit:
+`R3# show running-config | section router ospf
+router ospf 1
+ network 10.1.0.0 0.0.3.255 area 1
+ area 1 range 10.1.0.0 255.255.252.0`,
+    options: [
+      "area range only takes effect on an ABR, which creates the Type 3 summary LSA",
+      "area range requires the advertise keyword",
+      "The range must be configured with a wildcard mask",
+      "OSPF cannot summarize area 1 routes"
+    ],
+    answer: [0],
+    explanation:
+      "Inter-area summarization happens on the ABR that generates the Type 3 LSAs. Configure area 1 range 10.1.0.0 255.255.252.0 on the ABR between area 1 and area 0."
+  },
+  {
+    id: "sum-3",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question:
+      "Refer to the exhibit. Which two statements are true? (Choose two.)",
+    exhibit:
+`router bgp 65001
+ network 10.1.1.0 mask 255.255.255.0
+ network 10.1.2.0 mask 255.255.255.0
+ aggregate-address 10.1.0.0 255.255.0.0 summary-only`,
+    options: [
+      "Only 10.1.0.0/16 is advertised to BGP peers",
+      "The aggregate is created only if at least one more-specific component exists in the BGP table",
+      "10.1.1.0/24 and 10.1.2.0/24 are advertised along with the aggregate",
+      "The aggregate requires a static route to Null0",
+      "summary-only adds the AS_SET attribute"
+    ],
+    answer: [0, 1],
+    explanation:
+      "aggregate-address creates the summary when at least one component prefix is in the BGP table. summary-only suppresses the more-specific routes. No Null0 route is needed (unlike the network command), and AS_SET is a separate keyword (as-set)."
+  },
+  {
+    id: "sum-4",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question: "What is the purpose of the as-set keyword on a BGP aggregate-address command?",
+    options: [
+      "It includes the AS numbers of the component routes in the aggregate to preserve loop prevention",
+      "It suppresses the component routes",
+      "It sets the aggregate's origin to IGP",
+      "It sends the aggregate only to peers in the same AS"
+    ],
+    answer: [0],
+    explanation:
+      "Without as-set, the aggregate's AS_PATH starts at the aggregating router and loses the original AS information. as-set adds an unordered set of the component ASNs, so loop detection still works."
+  },
+  {
+    id: "sum-5",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question:
+      "An engineer configures ip summary-address eigrp 100 10.1.0.0 255.255.0.0 on R1 Gi0/1, but wants 10.1.50.0/24 to also be advertised individually out that interface. Which feature achieves this?",
+    options: [
+      "A leak-map on the summary-address command",
+      "The summary-only keyword",
+      "A distribute-list out on Gi0/1",
+      "eigrp stub summary"
+    ],
+    answer: [0],
+    explanation:
+      "ip summary-address eigrp 100 10.1.0.0 255.255.0.0 leak-map LEAK advertises the summary plus any component routes permitted by the route-map LEAK."
+  },
+  {
+    id: "sum-6",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question: "By default, which metric does an EIGRP summary route use?",
+    options: [
+      "The lowest metric of the component routes",
+      "The highest metric of the component routes",
+      "The average metric of the component routes",
+      "A fixed metric of 1"
+    ],
+    answer: [0],
+    explanation:
+      "The summary inherits the best (lowest) metric among its components, so it may be recalculated when components change. In named mode, summary-metric can fix the value."
+  },
+  {
+    id: "sum-7",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question: "On an ABR, what is the effect of area 1 range 10.1.0.0 255.255.0.0 not-advertise?",
+    options: [
+      "Neither the summary nor the component routes in that range are advertised into other areas",
+      "The summary is advertised but not the components",
+      "The components are advertised but not the summary",
+      "The range is advertised only into area 1"
+    ],
+    answer: [0],
+    explanation:
+      "not-advertise suppresses the Type 3 LSAs for the whole range, which effectively filters those intra-area routes from being advertised into other areas."
+  },
+  {
+    id: "sum-8",
+    domain: "Layer 3 Technologies",
+    topic: "Summarization",
+    question:
+      "Which command summarizes routes on an OSPF ASBR that redistributes 192.168.0.0/24 through 192.168.3.0/24 from EIGRP?",
+    options: [
+      "summary-address 192.168.0.0 255.255.252.0",
+      "area 0 range 192.168.0.0 255.255.252.0",
+      "aggregate-address 192.168.0.0 255.255.252.0",
+      "ip summary-address ospf 1 192.168.0.0 255.255.252.0"
+    ],
+    answer: [0],
+    explanation:
+      "External (Type 5/7) routes are summarized on the ASBR with summary-address under router ospf. Four networks (0–3) form a /22 = 255.255.252.0."
+  },
+
+  // Logging levels
+  {
+    id: "syslog-3",
+    domain: "Infrastructure Services",
+    topic: "Syslog",
+    question: "Which syslog severity level is 'critical'?",
+    options: ["1", "2", "3", "4"],
+    answer: [1],
+    explanation:
+      "0 emergencies, 1 alerts, 2 critical, 3 errors, 4 warnings, 5 notifications, 6 informational, 7 debugging. A common mnemonic is 'Every Awesome Cisco Engineer Will Need Ice cream Daily'."
+  },
+  {
+    id: "syslog-4",
+    domain: "Infrastructure Services",
+    topic: "Syslog",
+    question: "A router has logging console errors configured. Which message is displayed on the console?",
+    options: [
+      "%LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down",
+      "%LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to down",
+      "%SYS-5-CONFIG_I: Configured from console by admin on vty0",
+      "%OSPF-5-ADJCHG: Process 1, Nbr 2.2.2.2 on Gi0/0 from FULL to DOWN"
+    ],
+    answer: [0],
+    explanation:
+      "errors = level 3, so only levels 0–3 are shown. %LINK-3-UPDOWN is level 3. The others are level 5 (notifications)."
+  },
+  {
+    id: "syslog-5",
+    domain: "Infrastructure Services",
+    topic: "Syslog",
+    question: "What is the default severity level for messages sent to a syslog server (logging trap) on Cisco IOS?",
+    options: ["Warnings (4)", "Notifications (5)", "Informational (6)", "Debugging (7)"],
+    answer: [2],
+    explanation:
+      "By default, logging trap is informational, so levels 0–6 are sent to configured logging hosts. Debug messages (7) are not sent unless logging trap debugging is configured."
+  },
+  {
+    id: "syslog-6",
+    domain: "Infrastructure Services",
+    topic: "Syslog",
+    question:
+      "An engineer connected via SSH enables debug ip ospf adj but sees no output. Logging to the monitor is enabled at the debugging level. Which command is missing?",
+    options: ["terminal monitor", "logging console debugging", "logging buffered debugging", "service timestamps debug"],
+    answer: [0],
+    explanation:
+      "Log and debug messages are sent to VTY sessions only after terminal monitor is entered in that session (with logging monitor at a level that includes 7)."
+  },
+  {
+    id: "syslog-7",
+    domain: "Infrastructure Services",
+    topic: "Syslog",
+    question: "Which two severity levels are more severe than warnings? (Choose two.)",
+    options: ["Errors", "Critical", "Notifications", "Informational", "Debugging"],
+    answer: [0, 1],
+    explanation:
+      "More severe means a lower number. Warnings is 4, so errors (3) and critical (2) are more severe. Notifications (5), informational (6) and debugging (7) are less severe."
+  },
+  {
+    id: "syslog-8",
+    domain: "Infrastructure Services",
+    topic: "Syslog",
+    question: "What is the result of logging buffered 64000 notifications?",
+    options: [
+      "Messages of levels 0–5 are stored in a 64000-byte local buffer",
+      "Messages of level 5 only are stored in a 64000-byte buffer",
+      "Up to 64000 messages of levels 5–7 are stored",
+      "Messages of levels 0–5 are sent to the syslog server, and the buffer is cleared every 64000 seconds"
+    ],
+    answer: [0],
+    explanation:
+      "The number is the buffer size in bytes, and the level includes that severity and everything more severe. View the buffer with show logging."
+  },
+
+  // Policy-Based Routing
+  {
+    id: "pbr-3",
+    domain: "Layer 3 Technologies",
+    topic: "Policy-Based Routing",
+    question:
+      "A PBR route-map uses set ip default next-hop 10.2.2.2. When is this next hop used for matching packets?",
+    options: [
+      "Only when the routing table has no explicit route to the destination (the default route does not count)",
+      "Always, before the routing table is consulted",
+      "Only when the default route is missing",
+      "Only for router-generated traffic"
+    ],
+    answer: [0],
+    explanation:
+      "set ip next-hop overrides the routing table. set ip default next-hop is used only when there is no explicit route for the destination, and a 0.0.0.0/0 route is not considered explicit."
+  },
+  {
+    id: "pbr-4",
+    domain: "Layer 3 Technologies",
+    topic: "Policy-Based Routing",
+    question:
+      "Refer to the exhibit. What happens to traffic from 192.168.10.5 that arrives on Gi0/0?",
+    exhibit:
+`access-list 10 permit 192.168.10.0 0.0.0.255
+!
+route-map PBR deny 10
+ match ip address 10
+route-map PBR permit 20
+ set ip next-hop 10.2.2.2
+!
+interface GigabitEthernet0/0
+ ip policy route-map PBR`,
+    options: [
+      "It is forwarded normally using the routing table",
+      "It is dropped",
+      "It is sent to 10.2.2.2",
+      "It is sent to Null0"
+    ],
+    answer: [0],
+    explanation:
+      "In PBR, a deny route-map entry (or no match) means the packet is not policy-routed. It is not dropped; it is forwarded by normal destination-based routing. All other traffic matches sequence 20 and is sent to 10.2.2.2."
+  },
+  {
+    id: "pbr-5",
+    domain: "Layer 3 Technologies",
+    topic: "Policy-Based Routing",
+    question: "Which two commands verify or troubleshoot PBR operation? (Choose two.)",
+    options: ["show ip policy", "debug ip policy", "show ip pbr neighbors", "show policy-map interface", "debug ip routing"],
+    answer: [0, 1],
+    explanation:
+      "show ip policy lists interfaces with a route-map applied. debug ip policy shows per-packet PBR decisions ('policy match', 'policy rejected -- normal forwarding'). show route-map shows match counters."
+  },
+  {
+    id: "pbr-6",
+    domain: "Layer 3 Technologies",
+    topic: "Policy-Based Routing",
+    question:
+      "Refer to the exhibit. LAN users on Gi0/0 should reach the internet through ISP2 (10.2.2.2), but traffic still follows the default route through ISP1. What is wrong?",
+    exhibit:
+`access-list 101 permit ip 192.168.10.0 0.0.0.255 any
+route-map TO-ISP2 permit 10
+ match ip address 101
+ set ip next-hop 10.2.2.2
+!
+interface GigabitEthernet0/0
+ description LAN
+ ip address 192.168.10.1 255.255.255.0
+interface GigabitEthernet0/1
+ description ISP1
+ ip policy route-map TO-ISP2`,
+    options: [
+      "The policy is applied to the ISP1 interface; it must be applied inbound on the LAN interface Gi0/0",
+      "The ACL must match the destination instead of the source",
+      "set ip next-hop requires the outgoing interface",
+      "PBR requires CEF to be disabled"
+    ],
+    answer: [0],
+    explanation:
+      "ip policy route-map acts on packets as they enter an interface, so it must be applied on the ingress interface (Gi0/0 LAN), not on the exit interface."
+  },
+  {
+    id: "pbr-7",
+    domain: "Layer 3 Technologies",
+    topic: "Policy-Based Routing",
+    question: "What does set ip next-hop verify-availability 10.2.2.2 10 track 1 do in a PBR route-map?",
+    options: [
+      "It policy-routes to 10.2.2.2 only while track object 1 is up; otherwise the next entry or normal routing is used",
+      "It pings 10.2.2.2 every 10 seconds",
+      "It sets the administrative distance of the PBR path to 10",
+      "It load-balances across 10 next hops"
+    ],
+    answer: [0],
+    explanation:
+      "verify-availability with track ties the PBR next hop to an object (often an IP SLA). 10 is the sequence number of the next-hop entry. If the track is down, the next hop is skipped."
+  },
+
+  // uRPF
+  {
+    id: "urpf-3",
+    domain: "Infrastructure Security",
+    topic: "uRPF",
+    question: "Which interface command enables uRPF strict mode?",
+    options: [
+      "ip verify unicast source reachable-via rx",
+      "ip verify unicast source reachable-via any",
+      "ip verify source",
+      "ip urpf strict"
+    ],
+    answer: [0],
+    explanation:
+      "rx = strict mode (the source must be reachable through the receiving interface). any = loose mode (the source must exist in the FIB through any interface). ip verify source is the DHCP-snooping IP Source Guard feature on switches."
+  },
+  {
+    id: "urpf-4",
+    domain: "Infrastructure Security",
+    topic: "uRPF",
+    question: "Which feature must be enabled for uRPF to work?",
+    options: ["CEF", "NetFlow", "IP SLA", "Process switching"],
+    answer: [0],
+    explanation: "uRPF performs its reverse lookup in the CEF FIB, so CEF (ip cef) must be enabled."
+  },
+  {
+    id: "urpf-5",
+    domain: "Infrastructure Security",
+    topic: "uRPF",
+    question:
+      "Refer to the exhibit. R1 receives a packet sourced from 10.5.5.10 on Gi0/1. What happens to it?",
+    exhibit:
+`R1# show running-config interface GigabitEthernet0/1
+interface GigabitEthernet0/1
+ ip verify unicast source reachable-via rx
+
+R1# show ip route 10.5.5.10
+Routing entry for 10.5.5.0/24
+  Known via "ospf 1", distance 110, metric 3
+  * 10.1.13.3, via GigabitEthernet0/2`,
+    options: [
+      "It is dropped, because the best path back to the source is not through Gi0/1",
+      "It is forwarded, because a route to the source exists",
+      "It is forwarded and logged",
+      "It is dropped only if 10.5.5.10 is a private address"
+    ],
+    answer: [0],
+    explanation:
+      "Strict mode requires the best return route to point out the interface the packet arrived on. The route points to Gi0/2, so the check fails. Loose mode (reachable-via any) would forward the packet."
+  },
+  {
+    id: "urpf-6",
+    domain: "Infrastructure Security",
+    topic: "uRPF",
+    question:
+      "uRPF is configured with ip verify unicast source reachable-via rx 120. What is the role of ACL 120?",
+    options: [
+      "It is checked only for packets that fail uRPF: permitted packets are forwarded anyway, denied packets are dropped",
+      "It is checked before uRPF and bypasses the uRPF check for permitted packets",
+      "It filters which interfaces uRPF runs on",
+      "It defines which source prefixes are trusted for the routing table"
+    ],
+    answer: [0],
+    explanation:
+      "The optional ACL is evaluated only when the uRPF check fails. A permit lets the packet through (counted as a suppressed drop), and a deny drops it. A deny entry with the log keyword is useful for logging spoofed traffic."
+  },
+  {
+    id: "urpf-7",
+    domain: "Infrastructure Security",
+    topic: "uRPF",
+    question: "Refer to the exhibit. Which statement describes the uRPF configuration?",
+    exhibit:
+`R1# show ip interface GigabitEthernet0/0 | include verif
+  IP verify source reachable-via RX, allow default
+   1543 verification drops
+   0 suppressed verification drops`,
+    options: [
+      "Strict mode, with the default route accepted as a valid match",
+      "Loose mode, with the default route accepted as a valid match",
+      "Strict mode, with an ACL permitting failed packets",
+      "Loose mode, ignoring the default route"
+    ],
+    answer: [0],
+    explanation:
+      "RX = strict mode, and allow default means a source matched only by 0.0.0.0/0 still passes if the default route points out the receiving interface. Suppressed drops would increase if an ACL were permitting failed packets."
+  },
+  {
+    id: "urpf-8",
+    domain: "Infrastructure Security",
+    topic: "uRPF",
+    question: "Which command enables uRPF strict mode for IPv6 on an interface?",
+    options: [
+      "ipv6 verify unicast source reachable-via rx",
+      "ip verify unicast source reachable-via rx ipv6",
+      "ipv6 urpf strict",
+      "ipv6 traffic-filter urpf in"
+    ],
+    answer: [0],
+    explanation:
+      "IPv6 uses the same model with the ipv6 prefix: ipv6 verify unicast source reachable-via {rx | any}. IPv6 CEF must be enabled."
+  },
+
+  // General extras
+  {
+    id: "bgp-10",
+    domain: "Layer 3 Technologies",
+    topic: "BGP",
+    question: "A route is received with the well-known community no-export. What does the receiving router do?",
+    options: [
+      "It does not advertise the route to eBGP peers outside its AS (or confederation)",
+      "It does not advertise the route to any peer",
+      "It does not install the route in the routing table",
+      "It advertises the route only to route-reflector clients"
+    ],
+    answer: [0],
+    explanation:
+      "no-export keeps the route inside the local AS (or confederation). no-advertise prevents advertising to any peer, and local-AS keeps the route inside the local sub-AS of a confederation."
+  },
+  {
+    id: "bgp-11",
+    domain: "Layer 3 Technologies",
+    topic: "BGP",
+    question:
+      "An enterprise with two ISP links wants all outbound traffic to prefer ISP1, and wants every router in the AS to make the same decision. Which configuration achieves this?",
+    options: [
+      "An inbound route-map on the ISP1 session that sets local-preference 200",
+      "An outbound route-map toward ISP1 that sets MED 200",
+      "neighbor ISP1 weight 200 on one edge router",
+      "AS-path prepending toward ISP1"
+    ],
+    answer: [0],
+    explanation:
+      "Local preference is shared with all iBGP peers and is evaluated early (after weight), so the whole AS exits through ISP1. Weight is local to one router, and MED and prepending influence inbound traffic."
+  },
+  {
+    id: "mpls-7",
+    domain: "VPN Technologies",
+    topic: "MPLS",
+    question: "Refer to the exhibit. What does 'Pop Label' indicate for 10.4.4.4/32?",
+    exhibit:
+`R3# show mpls forwarding-table 10.4.4.4
+Local      Outgoing   Prefix           Bytes Label   Outgoing   Next Hop
+Label      Label      or Tunnel Id     Switched      interface
+19         Pop Label  10.4.4.4/32      12840         Gi0/1      10.3.4.4`,
+    options: [
+      "R3 is the penultimate hop and removes the top label before forwarding to R4",
+      "R3 drops labeled packets for this prefix",
+      "R3 is the ingress LSR and imposes label 19",
+      "R4 advertised explicit null"
+    ],
+    answer: [0],
+    explanation:
+      "R4 advertised implicit null (label 3) for its loopback, so R3 pops the label (PHP) and forwards the packet as plain IP. With explicit null, the outgoing label would show as explicit-n."
+  },
+  {
+    id: "ipsla-3",
+    domain: "Infrastructure Services",
+    topic: "IP SLA",
+    question:
+      "An IP SLA udp-jitter operation toward a remote Cisco router returns no results. ICMP to that router works. What is required on the remote router?",
+    options: ["ip sla responder", "ip sla schedule", "snmp-server enable traps rtr", "ip sla enable reaction-alerts"],
+    answer: [0],
+    explanation:
+      "udp-jitter (and similar UDP/TCP operations) need the target to run the IP SLA responder so it can timestamp and reply. ICMP echo needs no responder."
+  },
+  {
+    id: "snmp-3",
+    domain: "Infrastructure Services",
+    topic: "SNMP",
+    question: "Which command creates an SNMPv3 user that uses authentication and encryption?",
+    options: [
+      "snmp-server user ADMIN NMS-GROUP v3 auth sha AuthPass123 priv aes 128 PrivPass123",
+      "snmp-server community ADMIN v3 priv",
+      "snmp-server user ADMIN NMS-GROUP v2c auth sha AuthPass123",
+      "snmp-server group NMS-GROUP v3 auth"
+    ],
+    answer: [0],
+    explanation:
+      "SNMPv3 users are linked to a group and given auth (SHA/MD5) and priv (AES/DES) credentials. The group must be created with the priv security level (snmp-server group NMS-GROUP v3 priv)."
+  },
+  {
+    id: "aaa-4",
+    domain: "Infrastructure Security",
+    topic: "AAA",
+    question: "Which command sends a record of every privilege level 15 command entered to the TACACS+ server?",
+    options: [
+      "aaa accounting commands 15 default start-stop group tacacs+",
+      "aaa authorization commands 15 default group tacacs+",
+      "aaa accounting exec default start-stop group tacacs+",
+      "logging host tacacs+ commands 15"
+    ],
+    answer: [0],
+    explanation:
+      "Command accounting logs the commands. Command authorization checks whether each command is allowed. Exec accounting records only session start and stop."
+  },
+  {
+    id: "eigrp-13",
+    domain: "Layer 3 Technologies",
+    topic: "EIGRP",
+    question:
+      "An engineer needs to see EIGRP paths that do NOT meet the feasibility condition. Which command shows them?",
+    options: [
+      "show ip eigrp topology all-links",
+      "show ip eigrp topology",
+      "show ip eigrp neighbors detail",
+      "show ip route eigrp"
+    ],
+    answer: [0],
+    explanation:
+      "show ip eigrp topology lists only successors and feasible successors. all-links also shows paths that fail the feasibility condition."
+  },
+  {
+    id: "ospf-12",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF",
+    question: "Which router generates Type 3 summary LSAs?",
+    options: ["ABR", "ASBR", "DR", "Any internal router"],
+    answer: [0],
+    explanation:
+      "ABRs generate Type 3 LSAs to advertise networks between areas, and Type 4 LSAs to advertise ASBRs. ASBRs generate Type 5 (or Type 7 in an NSSA). The DR generates Type 2."
   }
 ];
