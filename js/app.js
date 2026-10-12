@@ -4,7 +4,7 @@
   const BUILTIN = window.ENARSI_QUESTIONS || [];
   const PASS_PCT = 80; // Cisco does not publish the cut score; 80% is a sensible target.
   const SECONDS_PER_QUESTION = 120; // ENARSI is roughly 2 minutes per question.
-  const LETTERS = "ABCDEF";
+  const LETTERS = "ABCDEFGH";
   const NUMBER_WORDS = { 2: "two", 3: "three", 4: "four" };
   const MAX_OPTIONS = LETTERS.length;
 
@@ -54,44 +54,118 @@
 
   // ───────────── Custom question sets ─────────────
   // Validates parsed JSON and returns { questions, errors }. Accepts either an
-  // array of questions or an object with a "questions" array.
+  // array of questions or an object with a "questions" array. Two question
+  // formats are supported:
+  //   built-in:  options: [..],        answer: [0, 2]
+  //   lettered:  options: {A: .., ..}, correct_answer: ["A", "C"],
+  //              why_other_options_are_wrong: {B: ..}, verification, confidence
   function parseQuestionSet(data) {
     const list = Array.isArray(data) ? data : data && Array.isArray(data.questions) ? data.questions : null;
     if (!list) return { questions: [], errors: ["The file must contain an array of questions (or an object with a \"questions\" array)."] };
 
     const questions = [];
     const errors = [];
-    const isText = (v) => typeof v === "string" && v.trim() !== "";
-
     list.forEach((item, i) => {
-      const label = `Question ${i + 1}` + (item && isText(item.id) ? ` ("${item.id}")` : "");
-      const fail = (msg) => errors.push(`${label}: ${msg}`);
-
-      if (!item || typeof item !== "object" || Array.isArray(item)) return fail("must be an object.");
-      if (!isText(item.question)) return fail("\"question\" must be a non-empty string.");
-      if (!Array.isArray(item.options) || item.options.length < 2 || item.options.length > MAX_OPTIONS || !item.options.every(isText)) {
-        return fail(`"options" must be an array of 2–${MAX_OPTIONS} non-empty strings.`);
+      const result = normalizeQuestion(item, i);
+      if (typeof result === "string") {
+        const label = `Question ${i + 1}` + (item && isText(item.id) ? ` ("${item.id}")` : "");
+        errors.push(`${label}: ${result}`);
+      } else {
+        questions.push(result);
       }
-      const answer = Array.isArray(item.answer) ? item.answer : [item.answer];
-      if (!answer.length || !answer.every((a) => Number.isInteger(a) && a >= 0 && a < item.options.length)) {
-        return fail(`"answer" must be an index or array of indexes between 0 and ${item.options.length - 1}.`);
-      }
-      if (new Set(answer).size !== answer.length) return fail("\"answer\" contains duplicate indexes.");
-      if (item.exhibit != null && typeof item.exhibit !== "string") return fail("\"exhibit\" must be a string.");
-      if (item.explanation != null && typeof item.explanation !== "string") return fail("\"explanation\" must be a string.");
-
-      questions.push({
-        id: isText(item.id) ? item.id : `custom-${i + 1}`,
-        domain: isText(item.domain) ? item.domain.trim() : "Custom Questions",
-        topic: isText(item.topic) ? item.topic.trim() : "General",
-        question: item.question,
-        exhibit: item.exhibit || "",
-        options: item.options,
-        answer,
-        explanation: item.explanation || ""
-      });
     });
     return { questions, errors };
+  }
+
+  function isText(v) {
+    return typeof v === "string" && v.trim() !== "";
+  }
+
+  // Returns a normalized question, or an error message string.
+  function normalizeQuestion(item, i) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return "must be an object.";
+    if (!isText(item.question)) return "\"question\" must be a non-empty string.";
+
+    // Options: array, or object keyed by letter ({ "A": "...", "B": "..." })
+    let options;
+    let keys = null;
+    if (Array.isArray(item.options)) {
+      options = item.options;
+    } else if (item.options && typeof item.options === "object") {
+      keys = Object.keys(item.options).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      options = keys.map((k) => item.options[k]);
+    }
+    if (!options || options.length < 2 || options.length > MAX_OPTIONS || !options.every(isText)) {
+      return `"options" must be an array or a letter-keyed object of 2–${MAX_OPTIONS} non-empty strings.`;
+    }
+
+    // Answer: "answer" (indexes) or "correct_answer" (letters, e.g. ["B", "D"] or "B, D")
+    let answer;
+    const raw = item.correct_answer != null ? item.correct_answer : item.answer;
+    if (raw == null) return "missing \"answer\" or \"correct_answer\".";
+    const parts = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(/[\s,;/]+/).filter(Boolean) : [raw];
+    const letterIndex = (v) => {
+      const key = String(v).trim().toUpperCase();
+      const pool = keys || options.map((_, n) => LETTERS[n]);
+      return pool.findIndex((k) => k.toUpperCase() === key);
+    };
+    answer = parts.map((v) => (Number.isInteger(v) ? v : letterIndex(v)));
+    // "BD" written as one token
+    if (answer.includes(-1) && parts.length === 1 && typeof parts[0] === "string") {
+      answer = [...parts[0]].map(letterIndex);
+    }
+    if (!answer.length || !answer.every((a) => Number.isInteger(a) && a >= 0 && a < options.length)) {
+      const valid = keys ? keys.join(", ") : `0–${options.length - 1}`;
+      return `answer must refer to existing options (${valid}).`;
+    }
+    if (new Set(answer).size !== answer.length) return "answer lists the same option twice.";
+
+    for (const f of ["exhibit", "explanation", "domain", "topic", "confidence"]) {
+      if (item[f] != null && typeof item[f] !== "string") return `"${f}" must be a string.`;
+    }
+
+    // Per-option notes ("why_other_options_are_wrong"), keyed by letter or index
+    const notes = options.map(() => "");
+    const why = item.why_other_options_are_wrong;
+    if (why && typeof why === "object") {
+      for (const [k, v] of Object.entries(why)) {
+        const n = /^\d+$/.test(k) && !keys ? Number(k) : letterIndex(k);
+        if (n >= 0 && n < options.length && isText(v)) notes[n] = v;
+      }
+    }
+
+    const v = item.verification;
+    const verification =
+      v && typeof v === "object"
+        ? { verified: v.verified === true ? true : v.verified === false ? false : null, method: isText(v.method) ? v.method : "" }
+        : null;
+
+    return {
+      id: isText(item.id) ? item.id : `custom-${i + 1}`,
+      domain: isText(item.domain) ? item.domain.trim() : "Custom Questions",
+      topic: isText(item.topic) ? item.topic.trim() : "General",
+      question: item.question,
+      exhibit: item.exhibit || "",
+      options,
+      answer,
+      explanation: item.explanation || "",
+      notes: notes.some(Boolean) ? notes : null,
+      verification,
+      confidence: isText(item.confidence) ? item.confidence.trim() : "",
+      // Lettered questions often refer to options by letter ("B and D"), so keep their order.
+      fixedOrder: !!keys
+    };
+  }
+
+  // Extra lines shown after the explanation: confidence and verification.
+  function metaLine(q) {
+    const bits = [];
+    if (q.confidence) bits.push(`Confidence: ${q.confidence}`);
+    if (q.verification) {
+      const status = q.verification.verified === true ? "Verified" : q.verification.verified === false ? "Not verified" : "Verification";
+      bits.push(q.verification.method ? `${status}: ${q.verification.method}` : status);
+    }
+    return bits.length ? el("div", { className: "q-extra", textContent: bits.join(" · ") }) : null;
   }
 
   function showLoadStatus(ok, message, details = []) {
@@ -228,7 +302,10 @@
       return;
     }
     $("setup-error").hidden = true;
-    state.questions = pool.map((q) => ({ q, order: shuffle(q.options.map((_, i) => i)) }));
+    state.questions = pool.map((q) => {
+      const order = q.options.map((_, i) => i);
+      return { q, order: q.fixedOrder ? order : shuffle(order) };
+    });
     state.responses = state.questions.map(() => new Set());
     state.index = 0;
     show("quiz");
@@ -316,6 +393,7 @@
       li.classList.remove("selected");
       if (q.answer.includes(orig)) li.classList.add("correct");
       else if (chosen.has(orig)) li.classList.add("incorrect");
+      if (q.notes && q.notes[orig]) li.lastChild.append(el("span", { className: "option-note", textContent: q.notes[orig] }));
     });
 
     const ok = isCorrect(q, chosen);
@@ -323,6 +401,8 @@
     fb.className = "feedback " + (ok ? "ok" : "bad");
     fb.innerHTML = "";
     fb.append(el("strong", { textContent: ok ? "Correct" : "Incorrect" }), q.explanation);
+    const extra = metaLine(q);
+    if (extra) fb.append(extra);
     fb.hidden = false;
 
     const last = state.index === state.questions.length - 1;
@@ -426,7 +506,9 @@
       r.order.forEach((orig, pos) => {
         const cls = r.q.answer.includes(orig) ? "correct" : r.chosen.has(orig) ? "chosen-wrong" : "";
         const mark = r.chosen.has(orig) ? " ← your answer" : "";
-        opts.append(el("li", { className: cls, textContent: `${LETTERS[pos]}. ${r.q.options[orig]}${mark}` }));
+        const li = el("li", { className: cls, textContent: `${LETTERS[pos]}. ${r.q.options[orig]}${mark}` });
+        if (r.q.notes && r.q.notes[orig]) li.append(el("span", { className: "option-note", textContent: r.q.notes[orig] }));
+        opts.append(li);
       });
       const parts = [
         el("div", { className: "q-meta" }, [
@@ -442,6 +524,8 @@
         ]));
       }
       parts.push(opts, el("div", { className: "explain", textContent: r.q.explanation }));
+      const extra = metaLine(r.q);
+      if (extra) parts.push(extra);
       list.append(el("div", { className: "review-item " + (r.ok ? "right" : "wrong") }, parts));
     });
     if (!list.children.length) list.append(el("p", { className: "muted", textContent: "No incorrect answers. Nice work!" }));

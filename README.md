@@ -24,11 +24,31 @@ Open `index.html` in a browser. You don't need a build step or a server, because
 
 On the setup screen, click **Load custom JSON…** and pick a `.json` file. The file can be an array of questions, or an object with a `"questions"` array, using the same fields as the built-in questions (see below and [`data/custom-questions.example.json`](data/custom-questions.example.json)).
 
-- Only `question`, `options` (2–6 strings) and `answer` (an index or an array of indexes) are required. `domain` defaults to "Custom Questions" and `topic` defaults to "General".
+- Only `question`, `options` (2–8 strings) and `answer` (an index or an array of indexes) are required. `domain` defaults to "Custom Questions" and `topic` defaults to "General".
 - In JSON, write multi-line exhibits with `\n` (template literals only work in `questions.js`).
 - Invalid entries are skipped and listed with the reason. The valid ones still load.
 - Tick **Also include the built-in questions** to mix both sets, or click **Use built-in questions** to switch back.
 - The file is read locally in the browser and is never uploaded anywhere. It is not saved, so you need to load it again after a page reload.
+
+### Lettered format
+
+Questions can also use letter-keyed options. Both formats can be mixed in one file:
+
+```json
+{
+  "question": "Which ports does RADIUS use? (Choose two.)",
+  "options": { "A": "UDP 1644 for authentication", "B": "UDP 1812 for authentication", "C": "TCP 1812 for authentication", "D": "UDP 1813 for accounting" },
+  "correct_answer": ["B", "D"],
+  "explanation": "RADIUS uses UDP 1812 for authentication and UDP 1813 for accounting.",
+  "why_other_options_are_wrong": { "A": "Not a RADIUS port.", "C": "RADIUS uses UDP, not TCP." },
+  "verification": { "verified": true, "method": "Checked against RFC 2865/2866." },
+  "confidence": "high"
+}
+```
+
+- `correct_answer` can be `["B", "D"]`, `"B, D"` or `"BD"`. Letters are not case-sensitive.
+- Questions in this format keep their A/B/C order instead of being shuffled, because explanations often refer to options by letter.
+- `why_other_options_are_wrong` notes appear under each option once you've answered and on the results review. `confidence` and `verification` appear under the explanation.
 
 ## Adding questions
 
