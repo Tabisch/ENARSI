@@ -21,6 +21,22 @@
       <h1>Set up your quiz</h1>
       <p class="muted">Implementing Cisco Enterprise Advanced Routing and Services. Pick the topics you want to practise.</p>
 
+      <div class="question-source">
+        <div class="source-row">
+          <div><span class="source-title">Question set:</span> <span id="source-label"></span></div>
+          <div class="source-actions">
+            <button type="button" id="load-custom-btn" class="ghost small">Load custom JSON…</button>
+            <button type="button" id="clear-custom-btn" class="link-btn" hidden>Use built-in questions</button>
+          </div>
+        </div>
+        <label class="radio" id="include-builtin-wrap" hidden>
+          <input type="checkbox" id="include-builtin"> Also include the built-in questions
+        </label>
+        <input type="file" id="custom-file" accept=".json,application/json" hidden>
+        <div id="load-status" class="load-status" hidden></div>
+        <p class="muted small-print">Same format as the built-in questions. <a href="data/custom-questions.example.json" download>Download an example file</a>.</p>
+      </div>
+
       <div class="setup-actions">
         <button type="button" class="link-btn" id="select-all">Select all</button>
         <button type="button" class="link-btn" id="select-none">Clear</button>

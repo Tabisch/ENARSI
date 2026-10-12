@@ -1,11 +1,15 @@
 (function () {
   "use strict";
 
-  const BANK = window.ENARSI_QUESTIONS || [];
+  const BUILTIN = window.ENARSI_QUESTIONS || [];
   const PASS_PCT = 80; // Cisco does not publish the cut score; 80% is a sensible target.
   const SECONDS_PER_QUESTION = 120; // ENARSI is roughly 2 minutes per question.
   const LETTERS = "ABCDEF";
   const NUMBER_WORDS = { 2: "two", 3: "three", 4: "four" };
+  const MAX_OPTIONS = LETTERS.length;
+
+  // Custom question set loaded from a JSON file (null = built-in only)
+  let custom = null;
 
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, children = []) => {
@@ -43,16 +47,117 @@
     window.scrollTo(0, 0);
   }
 
+  function activeBank() {
+    if (!custom) return BUILTIN;
+    return $("include-builtin").checked ? BUILTIN.concat(custom.questions) : custom.questions;
+  }
+
+  // ───────────── Custom question sets ─────────────
+  // Validates parsed JSON and returns { questions, errors }. Accepts either an
+  // array of questions or an object with a "questions" array.
+  function parseQuestionSet(data) {
+    const list = Array.isArray(data) ? data : data && Array.isArray(data.questions) ? data.questions : null;
+    if (!list) return { questions: [], errors: ["The file must contain an array of questions (or an object with a \"questions\" array)."] };
+
+    const questions = [];
+    const errors = [];
+    const isText = (v) => typeof v === "string" && v.trim() !== "";
+
+    list.forEach((item, i) => {
+      const label = `Question ${i + 1}` + (item && isText(item.id) ? ` ("${item.id}")` : "");
+      const fail = (msg) => errors.push(`${label}: ${msg}`);
+
+      if (!item || typeof item !== "object" || Array.isArray(item)) return fail("must be an object.");
+      if (!isText(item.question)) return fail("\"question\" must be a non-empty string.");
+      if (!Array.isArray(item.options) || item.options.length < 2 || item.options.length > MAX_OPTIONS || !item.options.every(isText)) {
+        return fail(`"options" must be an array of 2–${MAX_OPTIONS} non-empty strings.`);
+      }
+      const answer = Array.isArray(item.answer) ? item.answer : [item.answer];
+      if (!answer.length || !answer.every((a) => Number.isInteger(a) && a >= 0 && a < item.options.length)) {
+        return fail(`"answer" must be an index or array of indexes between 0 and ${item.options.length - 1}.`);
+      }
+      if (new Set(answer).size !== answer.length) return fail("\"answer\" contains duplicate indexes.");
+      if (item.exhibit != null && typeof item.exhibit !== "string") return fail("\"exhibit\" must be a string.");
+      if (item.explanation != null && typeof item.explanation !== "string") return fail("\"explanation\" must be a string.");
+
+      questions.push({
+        id: isText(item.id) ? item.id : `custom-${i + 1}`,
+        domain: isText(item.domain) ? item.domain.trim() : "Custom Questions",
+        topic: isText(item.topic) ? item.topic.trim() : "General",
+        question: item.question,
+        exhibit: item.exhibit || "",
+        options: item.options,
+        answer,
+        explanation: item.explanation || ""
+      });
+    });
+    return { questions, errors };
+  }
+
+  function showLoadStatus(ok, message, details = []) {
+    const box = $("load-status");
+    box.className = "load-status " + (ok ? "ok" : "bad");
+    box.innerHTML = "";
+    box.append(message);
+    if (details.length) {
+      const shown = details.slice(0, 5);
+      if (details.length > shown.length) shown.push(`…and ${details.length - shown.length} more.`);
+      box.append(el("ul", {}, shown.map((d) => el("li", { textContent: d }))));
+    }
+    box.hidden = false;
+  }
+
+  async function loadCustomFile(file) {
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch (err) {
+      showLoadStatus(false, `Could not read ${file.name}: not valid JSON (${err.message}).`);
+      return;
+    }
+    const { questions, errors } = parseQuestionSet(data);
+    if (!questions.length) {
+      showLoadStatus(false, `No valid questions found in ${file.name}.`, errors);
+      return;
+    }
+    custom = { name: file.name, questions };
+    showLoadStatus(
+      true,
+      `Loaded ${questions.length} question${questions.length === 1 ? "" : "s"} from ${file.name}.` +
+        (errors.length ? ` Skipped ${errors.length} invalid:` : ""),
+      errors
+    );
+    refreshSetup();
+  }
+
+  function clearCustom() {
+    custom = null;
+    $("include-builtin").checked = false;
+    $("load-status").hidden = true;
+    refreshSetup();
+  }
+
+  function refreshSetup() {
+    $("source-label").textContent = custom
+      ? `${custom.name} (${custom.questions.length})`
+      : `Built-in (${BUILTIN.length})`;
+    $("clear-custom-btn").hidden = !custom;
+    $("include-builtin-wrap").hidden = !custom || !BUILTIN.length;
+    buildTopicList();
+    updateCountOptions();
+  }
+
   // ───────────── Setup screen ─────────────
   function buildTopicList() {
     const domains = new Map();
-    for (const q of BANK) {
+    for (const q of activeBank()) {
       if (!domains.has(q.domain)) domains.set(q.domain, new Map());
       const topics = domains.get(q.domain);
       topics.set(q.topic, (topics.get(q.topic) || 0) + 1);
     }
 
     const list = $("topic-list");
+    list.innerHTML = "";
     for (const [domain, topics] of domains) {
       const domainBox = el("input", { type: "checkbox", checked: true });
       const topicBoxes = [];
@@ -95,7 +200,7 @@
   }
 
   function updateCountOptions() {
-    const available = BANK.filter((q) => selectedTopics().has(q.topic)).length;
+    const available = activeBank().filter((q) => selectedTopics().has(q.topic)).length;
     const select = $("question-count");
     const previous = select.value;
     select.innerHTML = "";
@@ -344,13 +449,20 @@
 
   // ───────────── Wiring ─────────────
   function init() {
-    if (!BANK.length) {
-      $("setup-error").textContent = "No questions found. Check that data/questions.js loaded.";
+    if (!BUILTIN.length) {
+      $("setup-error").textContent = "Built-in questions not found (data/questions.js did not load). You can still load a custom JSON file.";
       $("setup-error").hidden = false;
-      return;
     }
-    buildTopicList();
-    updateCountOptions();
+    refreshSetup();
+
+    $("load-custom-btn").addEventListener("click", () => $("custom-file").click());
+    $("custom-file").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      e.target.value = ""; // allow re-loading the same file after edits
+      if (file) loadCustomFile(file);
+    });
+    $("clear-custom-btn").addEventListener("click", clearCustom);
+    $("include-builtin").addEventListener("change", refreshSetup);
 
     $("select-all").addEventListener("click", () => setAllTopics(true));
     $("select-none").addEventListener("click", () => setAllTopics(false));
@@ -359,7 +471,7 @@
       state.mode = document.querySelector("input[name=mode]:checked").value;
       const topics = selectedTopics();
       const count = Number($("question-count").value);
-      startQuiz(shuffle(BANK.filter((q) => topics.has(q.topic))).slice(0, count));
+      startQuiz(shuffle(activeBank().filter((q) => topics.has(q.topic))).slice(0, count));
     });
 
     $("submit-btn").addEventListener("click", submit);

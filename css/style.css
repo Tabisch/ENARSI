@@ -77,6 +77,22 @@ h2 { font-size: 1.1rem; margin: 28px 0 10px; }
 .error { color: var(--bad); }
 
 /* Setup */
+.question-source {
+  margin: 16px 0 8px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.source-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.source-title { font-weight: 600; }
+.source-actions { display: flex; align-items: center; gap: 12px; }
+#include-builtin-wrap { margin-top: 8px; }
+button.ghost.small { padding: 6px 12px; font-size: 0.9rem; white-space: nowrap; }
+.small-print { font-size: 0.85rem; margin: 8px 0 0; }
+.small-print a { color: var(--accent); }
+.load-status { margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; border-left: 4px solid; }
+.load-status.ok { background: var(--ok-bg); border-color: var(--ok); }
+.load-status.bad { background: var(--bad-bg); border-color: var(--bad); }
+.load-status ul { margin: 6px 0 0; padding-left: 18px; }
+
 .setup-actions { display: flex; gap: 12px; margin: 16px 0 8px; }
 .link-btn {
   background: none; border: 0; padding: 0;

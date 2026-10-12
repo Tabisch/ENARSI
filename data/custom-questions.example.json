@@ -1,0 +1,26 @@
+[
+  {
+    "id": "my-ospf-1",
+    "domain": "Layer 3 Technologies",
+    "topic": "OSPF",
+    "question": "Refer to the exhibit. What do the R and C values represent?",
+    "exhibit": "R1# debug ip ospf hello\nOSPF-1 HELLO Gi0/0: Mismatched hello parameters from 10.1.12.2\nOSPF-1 HELLO Gi0/0: Dead R 120 C 40, Hello R 30 C 10",
+    "options": [
+      "R = received from the neighbor; C = configured locally",
+      "R = remote router ID; C = current DR",
+      "R = required value; C = calculated value",
+      "R = root; C = client"
+    ],
+    "answer": [0],
+    "explanation": "R is the value in the neighbor's hello, C is the value configured on the local interface."
+  },
+  {
+    "id": "my-syslog-1",
+    "domain": "Infrastructure Services",
+    "topic": "Syslog",
+    "question": "Which two severity levels are more severe than warnings? (Choose two.)",
+    "options": ["Errors", "Critical", "Notifications", "Informational", "Debugging"],
+    "answer": [0, 1],
+    "explanation": "Lower number = more severe. Warnings is 4, so errors (3) and critical (2) are more severe."
+  }
+]

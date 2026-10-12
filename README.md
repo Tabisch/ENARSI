@@ -20,6 +20,16 @@ Open `index.html` in a browser. You don't need a build step or a server, because
 | `js/app.js` | Quiz logic |
 | `data/questions.js` | Question bank |
 
+## Loading a custom question set
+
+On the setup screen, click **Load custom JSON…** and pick a `.json` file. The file can be an array of questions, or an object with a `"questions"` array, using the same fields as the built-in questions (see below and [`data/custom-questions.example.json`](data/custom-questions.example.json)).
+
+- Only `question`, `options` (2–6 strings) and `answer` (an index or an array of indexes) are required. `domain` defaults to "Custom Questions" and `topic` defaults to "General".
+- In JSON, write multi-line exhibits with `\n` (template literals only work in `questions.js`).
+- Invalid entries are skipped and listed with the reason. The valid ones still load.
+- Tick **Also include the built-in questions** to mix both sets, or click **Use built-in questions** to switch back.
+- The file is read locally in the browser and is never uploaded anywhere. It is not saved, so you need to load it again after a page reload.
+
 ## Adding questions
 
 Append an object to `window.ENARSI_QUESTIONS` in `data/questions.js`:
