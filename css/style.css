@@ -211,3 +211,25 @@ footer { text-align: center; font-size: 0.8rem; padding: 16px 16px 32px; }
 /* Per-option notes ("why other options are wrong") and question metadata */
 .option-note { display: block; margin-top: 4px; font-size: 0.88rem; color: var(--muted); }
 .q-extra { margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+
+/* Images (custom question sets) */
+.q-images { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.q-images img {
+  max-width: 100%; max-height: 360px; height: auto;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: #fff; cursor: zoom-in;
+}
+.option .q-images { margin: 6px 0 0; }
+.option .q-images img { max-height: 220px; }
+.option-text { min-width: 0; white-space: pre-line; }
+.review-item li { white-space: pre-line; }
+.feedback .q-images { margin-top: 10px; }
+.image-viewer {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; cursor: zoom-out;
+}
+.image-viewer[hidden] { display: none; }
+.image-viewer img { max-width: 100%; max-height: 100%; background: #fff; border-radius: 4px; }
+.q-images[hidden] { display: none; }

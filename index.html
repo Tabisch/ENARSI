@@ -67,6 +67,7 @@
         <span id="q-topic" class="tag"></span>
       </div>
       <p id="q-text" class="q-text"></p>
+      <div id="q-images" class="q-images" hidden></div>
       <div id="q-exhibit-wrap" class="exhibit" hidden>
         <div class="exhibit-label">Exhibit</div>
         <pre id="q-exhibit"></pre>
@@ -80,7 +81,7 @@
         <button type="button" id="quit-btn" class="ghost">End quiz</button>
         <button type="button" id="submit-btn" class="primary" disabled>Submit</button>
       </div>
-      <p class="kbd-hint muted">Keys: A–H select · Enter submit/next</p>
+      <p class="kbd-hint muted">Keys: A–H select · Enter submit/next · click an image to enlarge</p>
     </section>
 
     <!-- Results -->
@@ -107,6 +108,10 @@
       <div id="review-list" class="review-list"></div>
     </section>
   </main>
+
+  <div id="image-viewer" class="image-viewer" hidden title="Click or press Esc to close">
+    <img id="image-viewer-img" alt="">
+  </div>
 
   <footer class="muted">Unofficial study aid. Not affiliated with Cisco. Questions are original practice items written in the exam's style.</footer>
 

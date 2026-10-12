@@ -134,6 +134,29 @@
       }
     }
 
+    // Images: [{ location: "question" | "explanation" | <option letter/index>, src, origin? }]
+    const images = { question: [], explanation: [], options: options.map(() => []) };
+    if (item.images != null) {
+      if (!Array.isArray(item.images)) return "\"images\" must be an array.";
+      for (const [n, img] of item.images.entries()) {
+        const entry = typeof img === "string" ? { src: img } : img;
+        if (!entry || typeof entry !== "object") return `image ${n + 1} must be an object or a URL string.`;
+        const src = [entry.src, entry.origin].find(isSafeImageUrl);
+        if (!src) return `image ${n + 1} needs a "src" (or "origin") that is a data:image URL or an http(s) URL.`;
+        const fallback = entry.origin !== src && isSafeImageUrl(entry.origin) ? entry.origin : "";
+        const pic = { src, fallback, alt: isText(entry.alt) ? entry.alt : "" };
+        const loc = entry.location == null ? "question" : String(entry.location).trim();
+        const lower = loc.toLowerCase();
+        if (lower === "question" || lower === "exhibit") images.question.push(pic);
+        else if (lower === "explanation") images.explanation.push(pic);
+        else {
+          const idx = /^\d+$/.test(loc) && !keys ? Number(loc) : letterIndex(loc);
+          if (idx < 0 || idx >= options.length) return `image ${n + 1} has an unknown location "${loc}".`;
+          images.options[idx].push(pic);
+        }
+      }
+    }
+
     const v = item.verification;
     const verification =
       v && typeof v === "object"
@@ -153,8 +176,40 @@
       verification,
       confidence: isText(item.confidence) ? item.confidence.trim() : "",
       // Lettered questions often refer to options by letter ("B and D"), so keep their order.
-      fixedOrder: !!keys
+      fixedOrder: !!keys,
+      images
     };
+  }
+
+  // Only allow inline image data or web URLs as image sources.
+  function isSafeImageUrl(u) {
+    return typeof u === "string" && (/^data:image\/[a-z0-9.+-]+;base64,/i.test(u.trim()) || /^https?:\/\//i.test(u.trim()));
+  }
+
+  // Builds a row of images; click opens the full-size viewer.
+  function imageRow(pics) {
+    if (!pics || !pics.length) return null;
+    return el("div", { className: "q-images" }, pics.map((p) => {
+      const img = el("img", { src: p.src, alt: p.alt || "Exhibit image", loading: "lazy", title: "Click to enlarge" });
+      if (p.fallback) img.addEventListener("error", () => { if (img.src !== p.fallback) img.src = p.fallback; }, { once: true });
+      img.addEventListener("click", (e) => {
+        e.stopPropagation(); // don't toggle the answer option the image sits in
+        openViewer(img.currentSrc || img.src, img.alt);
+      });
+      return img;
+    }));
+  }
+
+  function openViewer(src, alt) {
+    const viewer = $("image-viewer");
+    $("image-viewer-img").src = src;
+    $("image-viewer-img").alt = alt;
+    viewer.hidden = false;
+  }
+
+  function closeViewer() {
+    $("image-viewer").hidden = true;
+    $("image-viewer-img").removeAttribute("src");
   }
 
   // Extra lines shown after the explanation: confidence and verification.
@@ -326,6 +381,12 @@
     $("q-exhibit-wrap").hidden = !q.exhibit;
     $("q-exhibit").textContent = q.exhibit || "";
 
+    const qImages = $("q-images");
+    qImages.innerHTML = "";
+    const qRow = q.images && imageRow(q.images.question);
+    if (qRow) qImages.append(...qRow.childNodes);
+    qImages.hidden = !qRow;
+
     const multi = q.answer.length > 1;
     $("q-hint").textContent = multi
       ? `Select ${NUMBER_WORDS[q.answer.length] || q.answer.length} answers.`
@@ -340,10 +401,13 @@
         name: "answer",
         value: orig
       });
+      const body = el("span", { className: "option-text" }, [el("span", { textContent: q.options[orig] })]);
+      const optRow = q.images && imageRow(q.images.options[orig]);
+      if (optRow) body.append(optRow);
       const li = el("li", { className: "option" }, [
         input,
         el("span", { className: "letter", textContent: LETTERS[pos] + "." }),
-        el("span", { textContent: q.options[orig] })
+        body
       ]);
       li.addEventListener("click", (e) => {
         if (state.answered) return;
@@ -401,6 +465,8 @@
     fb.className = "feedback " + (ok ? "ok" : "bad");
     fb.innerHTML = "";
     fb.append(el("strong", { textContent: ok ? "Correct" : "Incorrect" }), q.explanation);
+    const fbImages = q.images && imageRow(q.images.explanation);
+    if (fbImages) fb.append(fbImages);
     const extra = metaLine(q);
     if (extra) fb.append(extra);
     fb.hidden = false;
@@ -507,6 +573,8 @@
         const cls = r.q.answer.includes(orig) ? "correct" : r.chosen.has(orig) ? "chosen-wrong" : "";
         const mark = r.chosen.has(orig) ? " ← your answer" : "";
         const li = el("li", { className: cls, textContent: `${LETTERS[pos]}. ${r.q.options[orig]}${mark}` });
+        const optRow = r.q.images && imageRow(r.q.images.options[orig]);
+        if (optRow) li.append(optRow);
         if (r.q.notes && r.q.notes[orig]) li.append(el("span", { className: "option-note", textContent: r.q.notes[orig] }));
         opts.append(li);
       });
@@ -517,6 +585,8 @@
         ]),
         el("p", { className: "q-text", textContent: r.q.question })
       ];
+      const qRow = r.q.images && imageRow(r.q.images.question);
+      if (qRow) parts.push(qRow);
       if (r.q.exhibit) {
         parts.push(el("div", { className: "exhibit" }, [
           el("div", { className: "exhibit-label", textContent: "Exhibit" }),
@@ -524,6 +594,8 @@
         ]));
       }
       parts.push(opts, el("div", { className: "explain", textContent: r.q.explanation }));
+      const exRow = r.q.images && imageRow(r.q.images.explanation);
+      if (exRow) parts.push(exRow);
       const extra = metaLine(r.q);
       if (extra) parts.push(extra);
       list.append(el("div", { className: "review-item " + (r.ok ? "right" : "wrong") }, parts));
@@ -570,8 +642,13 @@
       startQuiz(shuffle(state.lastResults.filter((r) => !r.ok).map((r) => r.q)));
     });
     $("only-wrong").addEventListener("change", renderReview);
+    $("image-viewer").addEventListener("click", closeViewer);
 
     document.addEventListener("keydown", (e) => {
+      if (!$("image-viewer").hidden) {
+        if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); closeViewer(); }
+        return;
+      }
       if ($("quiz").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
       const pos = LETTERS.indexOf(e.key.toUpperCase());
       if (pos >= 0 && e.key.length === 1) {

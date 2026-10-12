@@ -50,6 +50,22 @@ Questions can also use letter-keyed options. Both formats can be mixed in one fi
 - Questions in this format keep their A/B/C order instead of being shuffled, because explanations often refer to options by letter.
 - `why_other_options_are_wrong` notes appear under each option once you've answered and on the results review. `confidence` and `verification` appear under the explanation.
 
+### Images
+
+Both formats accept an optional `images` array:
+
+```json
+"images": [
+  { "location": "question", "src": "data:image/png;base64,iVBOR...", "origin": "https://example.com/exhibit.png" },
+  { "location": "B", "src": "https://example.com/option-b.png" },
+  { "location": "explanation", "src": "data:image/jpeg;base64,/9j/..." }
+]
+```
+
+- `location`: `question` (shown under the question text), an option letter such as `A` (or an index for array-style options), or `explanation` (shown after answering). If it's missing, the image goes under the question.
+- `src`: a `data:image/...;base64,` URL or an `http(s)://` link. `origin` is optional; it is used if `src` fails to load. Other URL types are rejected.
+- Click an image to enlarge it, and click or press Esc to close it.
+
 ## Adding questions
 
 Append an object to `window.ENARSI_QUESTIONS` in `data/questions.js`:
