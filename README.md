@@ -4,30 +4,42 @@ A static quiz website for the Cisco **300-410 ENARSI** (Implementing Cisco Enter
 
 ## Usage
 
-Open `index.html` in a browser. You don't need a build step or a server, because it also works from `file://`.
+Open `index.html` in a browser (or go to https://enarsi.tabisch.net). You don't need a build step or a server.
+
+The start page links to two separate quizzes:
+
+| Page | What it does |
+|------|--------------|
+| `quiz/` | **Built-in quiz** using the question bank in `data/questions.js` |
+| `custom/` | **Custom quiz** that only uses a JSON file you load (see below) |
+
+Both quizzes have:
 
 - **Practice mode:** shows the correct answer and an explanation after each question.
 - **Exam mode:** gives you 2 minutes per question and shows results only at the end.
-- The results page has a breakdown by topic, a full review, and a "Retry incorrect" button.
-- Keyboard shortcuts: `A`–`F` to select an answer, `Enter` to submit or go to the next question.
+- A results page with a breakdown by topic, a full review, and a "Retry incorrect" button.
+- Keyboard shortcuts: `A`–`H` to select an answer, `Enter` to submit or go to the next question.
 
 ## Structure
 
 | File | Purpose |
 |------|---------|
-| `index.html` | Page markup |
-| `css/style.css` | Styling (follows the system light/dark theme) |
-| `js/app.js` | Quiz logic |
-| `data/questions.js` | Question bank |
+| `index.html` | Start page for choosing a quiz |
+| `quiz/index.html` | Built-in quiz page (`<body data-quiz="builtin">`) |
+| `custom/index.html` | Custom quiz page (`<body data-quiz="custom">`) |
+| `css/style.css` | Shared styling (follows the system light/dark theme) |
+| `js/app.js` | Shared quiz logic; the `data-quiz` attribute selects the mode |
+| `data/questions.js` | Built-in question bank |
+| `data/custom-questions.example.json` | Example file for the custom quiz |
 
 ## Loading a custom question set
 
-On the setup screen, click **Load custom JSON…** and pick a `.json` file. The file can be an array of questions, or an object with a `"questions"` array, using the same fields as the built-in questions (see below and [`data/custom-questions.example.json`](data/custom-questions.example.json)).
+On the custom quiz page (`custom/`), click **Load JSON file…** and pick a `.json` file. The file can be an array of questions, or an object with a `"questions"` array, using the same fields as the built-in questions (see below and [`data/custom-questions.example.json`](data/custom-questions.example.json)).
 
 - Only `question`, `options` (2–8 strings) and `answer` (an index or an array of indexes) are required. `domain` defaults to "Custom Questions" and `topic` defaults to "General".
 - In JSON, write multi-line exhibits with `\n` (template literals only work in `questions.js`).
 - Invalid entries are skipped and listed with the reason. The valid ones still load.
-- Tick **Also include the built-in questions** to mix both sets, or click **Use built-in questions** to switch back.
+- Click **Unload** to remove the loaded set.
 - The file is read locally in the browser and is never uploaded anywhere. It is not saved, so you need to load it again after a page reload.
 
 ### Lettered format

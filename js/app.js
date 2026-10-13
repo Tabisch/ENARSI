@@ -1,7 +1,10 @@
 (function () {
   "use strict";
 
-  const BUILTIN = window.ENARSI_QUESTIONS || [];
+  // Each page sets <body data-quiz="builtin|custom">: the built-in page uses
+  // data/questions.js, the custom page only uses a JSON file the user loads.
+  const MODE = document.body.dataset.quiz === "custom" ? "custom" : "builtin";
+  const BUILTIN = MODE === "builtin" ? window.ENARSI_QUESTIONS || [] : [];
   const PASS_PCT = 80; // Cisco does not publish the cut score; 80% is a sensible target.
   const SECONDS_PER_QUESTION = 120; // ENARSI is roughly 2 minutes per question.
   const LETTERS = "ABCDEFGH";
@@ -48,8 +51,8 @@
   }
 
   function activeBank() {
-    if (!custom) return BUILTIN;
-    return $("include-builtin").checked ? BUILTIN.concat(custom.questions) : custom.questions;
+    if (MODE === "custom") return custom ? custom.questions : [];
+    return BUILTIN;
   }
 
   // ───────────── Custom question sets ─────────────
@@ -261,17 +264,16 @@
 
   function clearCustom() {
     custom = null;
-    $("include-builtin").checked = false;
     $("load-status").hidden = true;
     refreshSetup();
   }
 
   function refreshSetup() {
-    $("source-label").textContent = custom
-      ? `${custom.name} (${custom.questions.length})`
-      : `Built-in (${BUILTIN.length})`;
-    $("clear-custom-btn").hidden = !custom;
-    $("include-builtin-wrap").hidden = !custom || !BUILTIN.length;
+    if (MODE === "custom") {
+      $("source-label").textContent = custom ? `${custom.name} (${custom.questions.length})` : "No file loaded yet";
+      $("clear-custom-btn").hidden = !custom;
+      $("topic-section").hidden = !custom;
+    }
     buildTopicList();
     updateCountOptions();
   }
@@ -605,20 +607,21 @@
 
   // ───────────── Wiring ─────────────
   function init() {
-    if (!BUILTIN.length) {
-      $("setup-error").textContent = "Built-in questions not found (data/questions.js did not load). You can still load a custom JSON file.";
+    if (MODE === "builtin" && !BUILTIN.length) {
+      $("setup-error").textContent = "Built-in questions not found (data/questions.js did not load).";
       $("setup-error").hidden = false;
     }
     refreshSetup();
 
-    $("load-custom-btn").addEventListener("click", () => $("custom-file").click());
-    $("custom-file").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      e.target.value = ""; // allow re-loading the same file after edits
-      if (file) loadCustomFile(file);
-    });
-    $("clear-custom-btn").addEventListener("click", clearCustom);
-    $("include-builtin").addEventListener("change", refreshSetup);
+    if (MODE === "custom") {
+      $("load-custom-btn").addEventListener("click", () => $("custom-file").click());
+      $("custom-file").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        e.target.value = ""; // allow re-loading the same file after edits
+        if (file) loadCustomFile(file);
+      });
+      $("clear-custom-btn").addEventListener("click", clearCustom);
+    }
 
     $("select-all").addEventListener("click", () => setAllTopics(true));
     $("select-none").addEventListener("click", () => setAllTopics(false));

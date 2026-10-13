@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ENARSI Custom Quiz</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-quiz="custom">
+  <header class="topbar">
+    <a class="brand" href="../index.html" title="Back to the start page">
+      <span class="brand-code">300-410</span>
+      <span class="brand-name">ENARSI Custom Quiz</span>
+    </a>
+    <div id="timer" class="timer" hidden></div>
+  </header>
+
+  <main>
+    <!-- Setup -->
+    <section id="setup" class="card">
+      <h1>Custom quiz</h1>
+      <p class="muted">Load your own question set from a JSON file, then pick the topics you want to practise. The file is read in your browser and never uploaded.</p>
+
+      <div class="question-source">
+        <div class="source-row">
+          <div><span class="source-title">Question set:</span> <span id="source-label"></span></div>
+          <div class="source-actions">
+            <button type="button" id="load-custom-btn" class="primary small">Load JSON file…</button>
+            <button type="button" id="clear-custom-btn" class="link-btn" hidden>Unload</button>
+          </div>
+        </div>
+        <input type="file" id="custom-file" accept=".json,application/json" hidden>
+        <div id="load-status" class="load-status" hidden></div>
+        <p class="muted small-print">Supports the built-in format and the lettered format (<code>options</code> as A/B/C…, <code>correct_answer</code>, <code>images</code>). <a href="../data/custom-questions.example.json" download>Download an example file</a>.</p>
+      </div>
+
+      <div id="topic-section" hidden>
+      <div class="setup-actions">
+        <button type="button" class="link-btn" id="select-all">Select all</button>
+        <button type="button" class="link-btn" id="select-none">Clear</button>
+      </div>
+      <div id="topic-list" class="topic-list"></div>
+
+      <div class="options-row">
+        <label class="field">
+          <span>Number of questions</span>
+          <select id="question-count"></select>
+        </label>
+        <fieldset class="field">
+          <legend>Mode</legend>
+          <label class="radio"><input type="radio" name="mode" value="practice" checked> Practice: see the answer after each question</label>
+          <label class="radio"><input type="radio" name="mode" value="exam"> Exam: see results at the end, timed</label>
+        </fieldset>
+      </div>
+
+      <button type="button" id="start-btn" class="primary">Start quiz</button>
+      </div>
+      <p id="setup-error" class="error" hidden></p>
+    </section>
+
+    <!-- Quiz -->
+    <section id="quiz" class="card" hidden>
+      <div class="progress"><div id="progress-bar"></div></div>
+      <div class="q-meta">
+        <span id="q-counter"></span>
+        <span id="q-topic" class="tag"></span>
+      </div>
+      <p id="q-text" class="q-text"></p>
+      <div id="q-images" class="q-images" hidden></div>
+      <div id="q-exhibit-wrap" class="exhibit" hidden>
+        <div class="exhibit-label">Exhibit</div>
+        <pre id="q-exhibit"></pre>
+      </div>
+      <p id="q-hint" class="hint"></p>
+      <ul id="q-options" class="options"></ul>
+
+      <div id="feedback" class="feedback" hidden></div>
+
+      <div class="q-actions">
+        <button type="button" id="quit-btn" class="ghost">End quiz</button>
+        <button type="button" id="submit-btn" class="primary" disabled>Submit</button>
+      </div>
+      <p class="kbd-hint muted">Keys: A–H select · Enter submit/next · click an image to enlarge</p>
+    </section>
+
+    <!-- Results -->
+    <section id="results" class="card" hidden>
+      <h1>Results</h1>
+      <div class="score-row">
+        <div id="score-big" class="score-big"></div>
+        <div>
+          <div id="score-verdict" class="verdict"></div>
+          <div id="score-detail" class="muted"></div>
+        </div>
+      </div>
+      <h2>By topic</h2>
+      <table class="breakdown">
+        <thead><tr><th>Topic</th><th>Correct</th><th>Score</th></tr></thead>
+        <tbody id="breakdown-body"></tbody>
+      </table>
+      <div class="results-actions">
+        <button type="button" id="retry-wrong-btn" class="ghost">Retry incorrect</button>
+        <button type="button" id="restart-btn" class="primary">New quiz</button>
+      </div>
+      <h2>Review</h2>
+      <label class="radio"><input type="checkbox" id="only-wrong"> Show incorrect only</label>
+      <div id="review-list" class="review-list"></div>
+    </section>
+  </main>
+
+  <div id="image-viewer" class="image-viewer" hidden title="Click or press Esc to close">
+    <img id="image-viewer-img" alt="">
+  </div>
+
+  <footer class="muted">Unofficial study aid. Not affiliated with Cisco.</footer>
+
+  <script src="../js/app.js"></script>
+</body>
+</html>
