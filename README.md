@@ -10,7 +10,7 @@ The start page links to two separate quizzes:
 
 | Page | What it does |
 |------|--------------|
-| `quiz/` | **Built-in quiz** using the question bank in `data/questions.js` |
+| `quiz/` | **Built-in quiz** using the question bank in `quiz/data/questions.js` |
 | `custom/` | **Custom quiz** that only uses a JSON file you load (see below) |
 
 Both quizzes have:
@@ -22,19 +22,27 @@ Both quizzes have:
 
 ## Structure
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Start page for choosing a quiz |
-| `quiz/index.html` | Built-in quiz page (`<body data-quiz="builtin">`) |
-| `custom/index.html` | Custom quiz page (`<body data-quiz="custom">`) |
-| `css/style.css` | Shared styling (follows the system light/dark theme) |
-| `js/app.js` | Shared quiz logic; the `data-quiz` attribute selects the mode |
-| `data/questions.js` | Built-in question bank |
-| `data/custom-questions.example.json` | Example file for the custom quiz |
+The two quizzes are separate, self-contained apps. Each folder has its own HTML, CSS, JavaScript and data and doesn't load anything from the other app, so either one can be copied or hosted on its own.
+
+```
+index.html, landing.css      Start page (links to both apps)
+quiz/                        Built-in quiz app
+  index.html
+  css/style.css
+  js/app.js
+  data/questions.js          Question bank
+custom/                      Custom quiz app
+  index.html
+  css/style.css
+  js/app.js                  Includes the JSON loader and validation
+  data/example.json          Example question file
+```
+
+Changes to one app (for example, styling or quiz logic) don't affect the other.
 
 ## Loading a custom question set
 
-On the custom quiz page (`custom/`), click **Load JSON file…** and pick a `.json` file. The file can be an array of questions, or an object with a `"questions"` array, using the same fields as the built-in questions (see below and [`data/custom-questions.example.json`](data/custom-questions.example.json)).
+On the custom quiz page (`custom/`), click **Load JSON file…** and pick a `.json` file. The file can be an array of questions, or an object with a `"questions"` array, using the same fields as the built-in questions (see below and [`custom/data/example.json`](custom/data/example.json)).
 
 - Only `question`, `options` (2–8 strings) and `answer` (an index or an array of indexes) are required. `domain` defaults to "Custom Questions" and `topic` defaults to "General".
 - In JSON, write multi-line exhibits with `\n` (template literals only work in `questions.js`).
@@ -80,7 +88,7 @@ Both formats accept an optional `images` array:
 
 ## Adding questions
 
-Append an object to `window.ENARSI_QUESTIONS` in `data/questions.js`:
+Append an object to `window.ENARSI_QUESTIONS` in `quiz/data/questions.js`:
 
 ```js
 {

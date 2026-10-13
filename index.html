@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ENARSI Practice Quiz</title>
   <meta name="description" content="Practice quizzes for the Cisco 300-410 ENARSI exam.">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="landing.css">
 </head>
 <body>
   <header class="topbar">
@@ -23,7 +23,7 @@
       <a class="choice card" href="quiz/index.html">
         <span class="choice-kicker">Built-in</span>
         <h2>ENARSI practice quiz</h2>
-        <p id="builtin-count" class="muted">Exam-style questions across all four ENARSI domains.</p>
+        <p class="muted">Exam-style questions across all four ENARSI domains.</p>
         <ul class="muted">
           <li>Pick topics, practice or timed exam mode</li>
           <li>Explanations and a per-topic breakdown</li>
@@ -36,7 +36,7 @@
         <h2>Custom quiz</h2>
         <p class="muted">Load your own question set from a JSON file.</p>
         <ul class="muted">
-          <li>Built-in or lettered (A/B/C…) format</li>
+          <li>Array or lettered (A/B/C…) format</li>
           <li>Images, per-option notes and verification info</li>
         </ul>
         <span class="choice-cta">Open →</span>
@@ -46,13 +46,5 @@
 
   <footer class="muted">Unofficial study aid. Not affiliated with Cisco.</footer>
 
-  <script src="data/questions.js"></script>
-  <script>
-    (function () {
-      var n = (window.ENARSI_QUESTIONS || []).length;
-      if (n) document.getElementById("builtin-count").textContent =
-        n + " exam-style questions across all four ENARSI domains.";
-    })();
-  </script>
 </body>
 </html>
