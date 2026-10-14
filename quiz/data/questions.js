@@ -2338,5 +2338,174 @@ Label      Label      or Tunnel Id     Switched      interface
     answer: [0],
     explanation:
       "ABRs generate Type 3 LSAs to advertise networks between areas, and Type 4 LSAs to advertise ASBRs. ASBRs generate Type 5 (or Type 7 in an NSSA). The DR generates Type 2."
+  },
+  // OSPF external metric types (E1/E2, N1/N2)
+  {
+    id: "ospfmt-1",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question: "What is the difference between OSPF external type 1 (E1) and type 2 (E2) routes?",
+    options: [
+      "E1 metric = seed metric + internal OSPF cost to the ASBR; E2 metric = seed metric only, which stays the same throughout the OSPF domain",
+      "E1 metric = seed metric only; E2 metric = seed metric + internal OSPF cost to the ASBR",
+      "E1 routes come from an NSSA; E2 routes come from a regular area",
+      "E1 routes use hop count; E2 routes use bandwidth"
+    ],
+    answer: [0],
+    explanation:
+      "E1 adds the internal cost to reach the ASBR, so the metric increases as the route travels through the domain. E2 keeps the seed metric unchanged everywhere, which suits a single exit point. N1/N2 (NSSA) work the same way."
+  },
+  {
+    id: "ospfmt-2",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "An engineer runs redistribute eigrp 100 subnets under router ospf 1 without any other options. Which metric type and metric do the external routes get?",
+    options: ["E2 with metric 20", "E1 with metric 20", "E2 with metric 1", "E1 with the EIGRP composite metric"],
+    answer: [0],
+    explanation:
+      "Cisco IOS redistributes into OSPF as type 2 (E2) with a default seed metric of 20. The exception is BGP, which uses a seed metric of 1."
+  },
+  {
+    id: "ospfmt-3",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "A router learns 10.9.9.0/24 as an intra-area route (O), an inter-area route (O IA), an E1 route and an E2 route. Which order of preference does OSPF use, regardless of metric?",
+    options: [
+      "O → O IA → O E1 → O E2",
+      "O IA → O → O E2 → O E1",
+      "O E1 → O E2 → O → O IA",
+      "The route with the lowest metric is always preferred"
+    ],
+    answer: [0],
+    explanation:
+      "OSPF chooses by path type before metric: intra-area, then inter-area, then external type 1, then external type 2. Metrics are only compared between routes of the same type."
+  },
+  {
+    id: "ospfmt-4",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "Refer to the exhibit. What does the value 20 in the route represent?",
+    exhibit:
+`R3# show ip route 172.20.1.0
+Routing entry for 172.20.1.0/24
+  Known via "ospf 1", distance 110, metric 20, type extern 2, forward metric 64
+  Last update from 10.1.23.2 on Serial0/0/0, 00:12:41 ago
+  Routing Descriptor Blocks:
+  * 10.1.23.2, from 2.2.2.2, 00:12:41 ago, via Serial0/0/0
+      Route metric is 20, traffic share count is 1`,
+    options: [
+      "The seed metric set by the ASBR; the internal cost to the ASBR (64) is not included",
+      "The total cost from R3 to the destination",
+      "The internal OSPF cost from R3 to the ASBR",
+      "The administrative distance of the external route"
+    ],
+    answer: [0],
+    explanation:
+      "For an E2 route, the route metric is only the seed metric from the ASBR. The internal cost to reach the ASBR is shown separately as the forward metric (64). It is used only as a tie-breaker."
+  },
+  {
+    id: "ospfmt-5",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "Two ASBRs advertise 192.0.2.0/24 into OSPF as E2 routes, both with metric 20. R5's internal cost is 10 to ASBR1 and 30 to ASBR2. Which path does R5 install?",
+    options: [
+      "Via ASBR1, because with equal E2 metrics the lower forward metric (cost to the ASBR) wins",
+      "Both paths, because E2 metrics are equal and OSPF always load-balances them",
+      "Via ASBR2, because it has the higher router ID",
+      "Neither, until one ASBR is changed to E1"
+    ],
+    answer: [0],
+    explanation:
+      "When E2 routes have the same metric, OSPF breaks the tie with the cost to the ASBR (forward metric). ASBR1 is cheaper (10 versus 30), so R5 uses it."
+  },
+  {
+    id: "ospfmt-6",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "Refer to the exhibit. R4 has an internal OSPF cost of 10 to ASBR1 and 30 to ASBR2. Which path does R4 use to reach 198.51.100.0/24?",
+    exhibit:
+`ASBR1: redistribute static subnets metric 50 metric-type 1
+ASBR2: redistribute static subnets metric 20 metric-type 1
+
+Both ASBRs redistribute a static route for 198.51.100.0/24.`,
+    options: [
+      "Via ASBR2, with a total metric of 50",
+      "Via ASBR1, with a total metric of 60",
+      "Via ASBR2, with a metric of 20",
+      "Via ASBR1, because it has the lower internal cost"
+    ],
+    answer: [0],
+    explanation:
+      "E1 metrics add the internal cost: ASBR1 = 50 + 10 = 60, ASBR2 = 20 + 30 = 50. The lower total (50 through ASBR2) wins."
+  },
+  {
+    id: "ospfmt-7",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "Which two configurations make routes redistributed from EIGRP appear as E1 routes in OSPF? (Choose two.)",
+    options: [
+      "redistribute eigrp 100 subnets metric-type 1",
+      "redistribute eigrp 100 subnets route-map RM, with set metric-type type-1 in route-map RM",
+      "redistribute eigrp 100 subnets metric 1",
+      "default-metric 1 under router ospf",
+      "ip ospf network type-1 on the ASBR interfaces"
+    ],
+    answer: [0, 1],
+    explanation:
+      "The metric type is set with the metric-type keyword on redistribute or with set metric-type type-1 in a route-map. metric 1 and default-metric only change the seed metric, not the type."
+  },
+  {
+    id: "ospfmt-8",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "An ASBR inside an NSSA (area 1) redistributes static routes with default settings. How do the routes appear inside area 1 and in area 0?",
+    options: [
+      "O N2 (Type 7 LSA) in area 1, and O E2 (Type 5 LSA) in area 0 after the ABR translates them",
+      "O E2 in both areas",
+      "O N1 in area 1, and O E1 in area 0",
+      "O N2 in both areas, because Type 7 LSAs are flooded throughout the domain"
+    ],
+    answer: [0],
+    explanation:
+      "In an NSSA, external routes are carried in Type 7 LSAs and appear as N1/N2 (N2 by default). The NSSA ABR translates them into Type 5 LSAs, which appear as E1/E2 elsewhere, keeping the metric type."
+  },
+  {
+    id: "ospfmt-9",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "An engineer configures default-information originate always on an OSPF router without other options. How do other routers see the default route?",
+    options: [
+      "O*E2 0.0.0.0/0 with metric 1",
+      "O*E1 0.0.0.0/0 with metric 20",
+      "O*IA 0.0.0.0/0 with metric 1",
+      "O*E2 0.0.0.0/0 with metric 20"
+    ],
+    answer: [0],
+    explanation:
+      "default-information originate advertises the default as an external type 2 route with metric 1 by default. Change it with the metric and metric-type keywords, for example default-information originate always metric 10 metric-type 1."
+  },
+  {
+    id: "ospfmt-10",
+    domain: "Layer 3 Technologies",
+    topic: "OSPF Metric Types",
+    question:
+      "A company has two ASBRs that redistribute the same external routes. It wants every internal router to choose the ASBR that is closest to it. Which metric type should be used?",
+    options: [
+      "E1, because it includes the internal cost to each ASBR",
+      "E2, because it keeps the metric constant across the domain",
+      "N2, because it is preferred over E1",
+      "The metric type has no effect when there are multiple ASBRs"
+    ],
+    answer: [0],
+    explanation:
+      "With E1, each router adds its own cost to the ASBR, so the closest exit gives the lowest total metric. E2 compares only the seed metric (and uses the cost to the ASBR only as a tie-breaker), which suits designs with one preferred exit."
   }
 ];
