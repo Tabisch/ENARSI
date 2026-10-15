@@ -239,3 +239,16 @@ a.brand:hover .brand-name { text-decoration: underline; }
 
 button.primary.small { padding: 6px 12px; font-size: 0.9rem; white-space: nowrap; }
 .small-print code { font-size: 0.85em; }
+
+/* Free-text questions */
+.text-answer input {
+  width: 100%; font: 1rem ui-monospace, Menlo, Consolas, monospace;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+}
+.text-answer input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.text-answer input.correct { background: var(--ok-bg); border-color: var(--ok); }
+.text-answer input.incorrect { background: var(--bad-bg); border-color: var(--bad); }
+.text-answer-summary { margin: 4px 0 6px; }
+.text-answer-summary code, .review-item code { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 600; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

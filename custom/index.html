@@ -73,6 +73,10 @@
       </div>
       <p id="q-hint" class="hint"></p>
       <ul id="q-options" class="options"></ul>
+      <div id="q-text-answer" class="text-answer" hidden>
+        <label for="q-answer-input" class="sr-only">Your answer</label>
+        <input type="text" id="q-answer-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your answer">
+      </div>
 
       <div id="feedback" class="feedback" hidden></div>
 
@@ -80,7 +84,7 @@
         <button type="button" id="quit-btn" class="ghost">End quiz</button>
         <button type="button" id="submit-btn" class="primary" disabled>Submit</button>
       </div>
-      <p class="kbd-hint muted">Keys: A–H select · Enter submit/next · click an image to enlarge</p>
+      <p class="kbd-hint muted">Keys: A–H select · Enter submit/next · type your answer for free-text questions · click an image to enlarge</p>
     </section>
 
     <!-- Results -->

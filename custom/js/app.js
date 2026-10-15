@@ -38,7 +38,24 @@
   }
 
   function isCorrect(q, chosen) {
+    if (q.type === "text") {
+      const given = normalizeText(chosen, q.caseSensitive);
+      return given !== "" && q.accepted.some((a) => normalizeText(a, q.caseSensitive) === given);
+    }
     return chosen.size === q.answer.length && q.answer.every((i) => chosen.has(i));
+  }
+
+  // A response counts as given when a text answer isn't blank, or the
+  // requested number of options is selected.
+  function hasAnswer(q, chosen) {
+    return q.type === "text" ? normalizeText(chosen, true) !== "" : chosen.size === q.answer.length;
+  }
+
+  // Free-text comparison: ignore surrounding quotes/backticks and extra
+  // whitespace, and ignore case unless the question sets case_sensitive.
+  function normalizeText(v, caseSensitive) {
+    let t = String(v == null ? "" : v).trim().replace(/^[`'"]+|[`'"]+$/g, "").trim().replace(/\s+/g, " ");
+    return caseSensitive ? t : t.toLowerCase();
   }
 
   function show(section) {
@@ -83,6 +100,12 @@
   function normalizeQuestion(item, i) {
     if (!item || typeof item !== "object" || Array.isArray(item)) return "must be an object.";
     if (!isText(item.question)) return "\"question\" must be a non-empty string.";
+
+    // No options (missing, [] or {}) -> free-text question
+    const o = item.options;
+    if (o == null || (Array.isArray(o) && !o.length) || (typeof o === "object" && !Array.isArray(o) && !Object.keys(o).length)) {
+      return normalizeTextQuestion(item, i);
+    }
 
     // Options: array, or object keyed by letter ({ "A": "...", "B": "..." })
     let options;
@@ -132,34 +155,10 @@
       }
     }
 
-    // Images: [{ location: "question" | "explanation" | <option letter/index>, src, origin? }]
-    const images = { question: [], explanation: [], options: options.map(() => []) };
-    if (item.images != null) {
-      if (!Array.isArray(item.images)) return "\"images\" must be an array.";
-      for (const [n, img] of item.images.entries()) {
-        const entry = typeof img === "string" ? { src: img } : img;
-        if (!entry || typeof entry !== "object") return `image ${n + 1} must be an object or a URL string.`;
-        const src = [entry.src, entry.origin].find(isSafeImageUrl);
-        if (!src) return `image ${n + 1} needs a "src" (or "origin") that is a data:image URL or an http(s) URL.`;
-        const fallback = entry.origin !== src && isSafeImageUrl(entry.origin) ? entry.origin : "";
-        const pic = { src, fallback, alt: isText(entry.alt) ? entry.alt : "" };
-        const loc = entry.location == null ? "question" : String(entry.location).trim();
-        const lower = loc.toLowerCase();
-        if (lower === "question" || lower === "exhibit") images.question.push(pic);
-        else if (lower === "explanation") images.explanation.push(pic);
-        else {
-          const idx = /^\d+$/.test(loc) && !keys ? Number(loc) : letterIndex(loc);
-          if (idx < 0 || idx >= options.length) return `image ${n + 1} has an unknown location "${loc}".`;
-          images.options[idx].push(pic);
-        }
-      }
-    }
+    const images = parseImages(item, options.length, (loc) => (/^\d+$/.test(loc) && !keys ? Number(loc) : letterIndex(loc)));
+    if (typeof images === "string") return images;
 
-    const v = item.verification;
-    const verification =
-      v && typeof v === "object"
-        ? { verified: v.verified === true ? true : v.verified === false ? false : null, method: isText(v.method) ? v.method : "" }
-        : null;
+    const verification = parseVerification(item.verification);
 
     return {
       id: isText(item.id) ? item.id : `custom-${i + 1}`,
@@ -177,6 +176,90 @@
       fixedOrder: !!keys,
       images
     };
+  }
+
+  // Images: [{ location: "question" | "explanation" | <option letter/index>, src, origin? }]
+  // optionIndex(loc) maps an option location to an index (-1 if unknown).
+  // Returns the images object, or an error string.
+  function parseImages(item, optionCount, optionIndex) {
+    const images = { question: [], explanation: [], options: Array.from({ length: optionCount }, () => []) };
+    if (item.images != null) {
+      if (!Array.isArray(item.images)) return "\"images\" must be an array.";
+      for (const [n, img] of item.images.entries()) {
+        const entry = typeof img === "string" ? { src: img } : img;
+        if (!entry || typeof entry !== "object") return `image ${n + 1} must be an object or a URL string.`;
+        const src = [entry.src, entry.origin].find(isSafeImageUrl);
+        if (!src) return `image ${n + 1} needs a "src" (or "origin") that is a data:image URL or an http(s) URL.`;
+        const fallback = entry.origin !== src && isSafeImageUrl(entry.origin) ? entry.origin : "";
+        const pic = { src, fallback, alt: isText(entry.alt) ? entry.alt : "" };
+        const loc = entry.location == null ? "question" : String(entry.location).trim();
+        const lower = loc.toLowerCase();
+        if (lower === "question" || lower === "exhibit") images.question.push(pic);
+        else if (lower === "explanation") images.explanation.push(pic);
+        else {
+          const idx = optionCount ? optionIndex(loc) : -1;
+          if (idx < 0 || idx >= optionCount) {
+            return optionCount
+              ? `image ${n + 1} has an unknown location "${loc}".`
+              : `image ${n + 1}: free-text questions only support the "question" and "explanation" locations.`;
+          }
+          images.options[idx].push(pic);
+        }
+      }
+    }
+    return images;
+  }
+
+  // Free-text question: the typed answer is compared with "correct_answer"
+  // (a string, or an array of accepted alternatives).
+  function normalizeTextQuestion(item, i) {
+    const raw = item.correct_answer != null ? item.correct_answer : item.answer;
+    const accepted = (Array.isArray(raw) ? raw : [raw]).filter(isText).map((a) => a.trim());
+    if (!accepted.length || (Array.isArray(raw) && accepted.length !== raw.length)) {
+      return "free-text questions (empty \"options\") need \"correct_answer\" as a non-empty string or an array of strings.";
+    }
+    for (const f of ["exhibit", "explanation", "domain", "topic", "confidence"]) {
+      if (item[f] != null && typeof item[f] !== "string") return `"${f}" must be a string.`;
+    }
+    const caseSensitive = item.case_sensitive === true;
+
+    // "why_other_options_are_wrong" is keyed by the wrong answer text
+    const wrongNotes = {};
+    const why = item.why_other_options_are_wrong;
+    if (why && typeof why === "object") {
+      for (const [k, v] of Object.entries(why)) {
+        if (isText(k) && isText(v)) wrongNotes[normalizeText(k, caseSensitive)] = { answer: k, note: v };
+      }
+    }
+
+    const images = parseImages(item, 0, () => -1);
+    if (typeof images === "string") return images;
+
+    return {
+      id: isText(item.id) ? item.id : `custom-${i + 1}`,
+      type: "text",
+      domain: isText(item.domain) ? item.domain.trim() : "Custom Questions",
+      topic: isText(item.topic) ? item.topic.trim() : "General",
+      question: item.question,
+      exhibit: item.exhibit || "",
+      options: [],
+      answer: [],
+      accepted,
+      caseSensitive,
+      wrongNotes,
+      explanation: item.explanation || "",
+      notes: null,
+      verification: parseVerification(item.verification),
+      confidence: isText(item.confidence) ? item.confidence.trim() : "",
+      fixedOrder: true,
+      images
+    };
+  }
+
+  function parseVerification(v) {
+    return v && typeof v === "object"
+      ? { verified: v.verified === true ? true : v.verified === false ? false : null, method: isText(v.method) ? v.method : "" }
+      : null;
   }
 
   // Only allow inline image data or web URLs as image sources.
@@ -356,7 +439,7 @@
       const order = q.options.map((_, i) => i);
       return { q, order: q.fixedOrder ? order : shuffle(order) };
     });
-    state.responses = state.questions.map(() => new Set());
+    state.responses = state.questions.map(({ q }) => (q.type === "text" ? "" : new Set()));
     state.index = 0;
     show("quiz");
     startTimer();
@@ -382,12 +465,32 @@
     if (qRow) qImages.append(...qRow.childNodes);
     qImages.hidden = !qRow;
 
+    const list = $("q-options");
+    const textWrap = $("q-text-answer");
+    const textInput = $("q-answer-input");
+    $("feedback").hidden = true;
+    $("submit-btn").textContent = "Submit";
+    $("submit-btn").disabled = true;
+
+    if (q.type === "text") {
+      list.innerHTML = "";
+      list.hidden = true;
+      textWrap.hidden = false;
+      textInput.value = "";
+      textInput.disabled = false;
+      textInput.classList.remove("correct", "incorrect");
+      $("q-hint").textContent = "Type your answer.";
+      textInput.focus();
+      return;
+    }
+    list.hidden = false;
+    textWrap.hidden = true;
+
     const multi = q.answer.length > 1;
     $("q-hint").textContent = multi
       ? `Select ${NUMBER_WORDS[q.answer.length] || q.answer.length} answers.`
       : "Select one answer.";
 
-    const list = $("q-options");
     list.innerHTML = "";
     list.classList.remove("locked");
     order.forEach((orig, pos) => {
@@ -411,10 +514,22 @@
       });
       list.append(li);
     });
+  }
 
-    $("feedback").hidden = true;
-    $("submit-btn").textContent = "Submit";
-    $("submit-btn").disabled = true;
+  // "Correct answer: …" plus a note when the typed answer matches a known wrong answer.
+  function textAnswerSummary(q, given, ok) {
+    const box = el("div", { className: "text-answer-summary" });
+    if (!ok) box.append(el("div", {}, [el("span", { className: "muted", textContent: "Correct answer: " }), el("code", { textContent: q.accepted.join(" / ") })]));
+    const hit = q.wrongNotes[normalizeText(given, q.caseSensitive)];
+    if (!ok && hit) box.append(el("div", { className: "option-note", textContent: `${hit.answer}: ${hit.note}` }));
+    return box;
+  }
+
+  function readTextAnswer() {
+    const { q } = state.questions[state.index];
+    if (q.type !== "text" || state.answered) return;
+    state.responses[state.index] = $("q-answer-input").value;
+    $("submit-btn").disabled = !hasAnswer(q, state.responses[state.index]);
   }
 
   function readSelection() {
@@ -439,11 +554,17 @@
     if (state.answered) return next();
     const { q } = state.questions[state.index];
     const chosen = state.responses[state.index];
-    if (chosen.size !== q.answer.length) return;
+    if (!hasAnswer(q, chosen)) return;
 
     if (state.mode === "exam") return next();
 
     state.answered = true;
+    const ok = isCorrect(q, chosen);
+    if (q.type === "text") {
+      const input = $("q-answer-input");
+      input.disabled = true;
+      input.classList.add(ok ? "correct" : "incorrect");
+    }
     $("q-options").classList.add("locked");
     document.querySelectorAll("#q-options .option").forEach((li) => {
       const input = li.querySelector("input");
@@ -455,11 +576,12 @@
       if (q.notes && q.notes[orig]) li.lastChild.append(el("span", { className: "option-note", textContent: q.notes[orig] }));
     });
 
-    const ok = isCorrect(q, chosen);
     const fb = $("feedback");
     fb.className = "feedback " + (ok ? "ok" : "bad");
     fb.innerHTML = "";
-    fb.append(el("strong", { textContent: ok ? "Correct" : "Incorrect" }), q.explanation);
+    fb.append(el("strong", { textContent: ok ? "Correct" : "Incorrect" }));
+    if (q.type === "text") fb.append(textAnswerSummary(q, chosen, ok));
+    fb.append(q.explanation);
     const fbImages = q.images && imageRow(q.images.explanation);
     if (fbImages) fb.append(fbImages);
     const extra = metaLine(q);
@@ -564,6 +686,16 @@
     state.lastResults.forEach((r, i) => {
       if (onlyWrong && r.ok) return;
       const opts = el("ul");
+      if (r.q.type === "text") {
+        const given = typeof r.chosen === "string" ? r.chosen.trim() : "";
+        opts.append(el("li", { className: r.ok ? "correct" : given ? "chosen-wrong" : "" }, [
+          el("span", { className: "muted", textContent: "Your answer: " }),
+          given ? el("code", { textContent: given }) : el("em", { textContent: "none" })
+        ]));
+        if (!r.ok) opts.append(el("li", { className: "correct" }, [el("span", { className: "muted", textContent: "Correct answer: " }), el("code", { textContent: r.q.accepted.join(" / ") })]));
+        const hit = r.q.wrongNotes[normalizeText(given, r.q.caseSensitive)];
+        if (!r.ok && hit) opts.append(el("li", {}, [el("span", { className: "option-note", textContent: `${hit.answer}: ${hit.note}` })]));
+      }
       r.order.forEach((orig, pos) => {
         const cls = r.q.answer.includes(orig) ? "correct" : r.chosen.has(orig) ? "chosen-wrong" : "";
         const mark = r.chosen.has(orig) ? " ← your answer" : "";
@@ -575,7 +707,7 @@
       });
       const parts = [
         el("div", { className: "q-meta" }, [
-          el("span", { textContent: `Question ${i + 1} · ${r.ok ? "Correct" : r.chosen.size ? "Incorrect" : "Not answered"}` }),
+          el("span", { textContent: `Question ${i + 1} · ${r.ok ? "Correct" : hasAnswer(r.q, r.chosen) || (r.q.type !== "text" && r.chosen.size) ? "Incorrect" : "Not answered"}` }),
           el("span", { className: "tag", textContent: r.q.topic })
         ]),
         el("p", { className: "q-text", textContent: r.q.question })
@@ -633,6 +765,7 @@
     });
     $("only-wrong").addEventListener("change", renderReview);
     $("image-viewer").addEventListener("click", closeViewer);
+    $("q-answer-input").addEventListener("input", readTextAnswer);
 
     document.addEventListener("keydown", (e) => {
       if (!$("image-viewer").hidden) {
@@ -640,8 +773,9 @@
         return;
       }
       if ($("quiz").hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+      const typing = e.target === $("q-answer-input");
       const pos = LETTERS.indexOf(e.key.toUpperCase());
-      if (pos >= 0 && e.key.length === 1) {
+      if (pos >= 0 && e.key.length === 1 && !typing) {
         toggleByLetter(pos);
       } else if (e.key === "Enter" && !$("submit-btn").disabled) {
         e.preventDefault();

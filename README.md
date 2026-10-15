@@ -70,6 +70,24 @@ Questions can also use letter-keyed options. Both formats can be mixed in one fi
 - Questions in this format keep their A/B/C order instead of being shuffled, because explanations often refer to options by letter.
 - `why_other_options_are_wrong` notes appear under each option once you've answered and on the results review. `confidence` and `verification` appear under the explanation.
 
+### Free-text questions
+
+If `options` is empty (`{}` or `[]`) or missing, the custom quiz shows a text box instead of answer choices, and the typed answer is compared with `correct_answer`:
+
+```json
+{
+  "question": "Which NetworkManager command is a curses application? (Specify only the command.)",
+  "options": {},
+  "correct_answer": "nmtui",
+  "why_other_options_are_wrong": { "nmcli": "nmcli is a plain command-line client, not a curses application." }
+}
+```
+
+- `correct_answer` can be a string or an array of accepted alternatives, for example `["Type 7", "7"]`.
+- Matching ignores case, leading and trailing spaces, repeated spaces, and surrounding quotes or backticks. Add `"case_sensitive": true` to make case matter.
+- `why_other_options_are_wrong` is keyed by wrong answers. If the typed answer matches one, its note is shown.
+- Images can use the `question` and `explanation` locations.
+
 ### Images
 
 Both formats accept an optional `images` array:
