@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ENARSI Custom Quiz</title>
+  <title>Custom Quiz</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="../index.html" title="Back to the start page">
-      <span class="brand-code">300-410</span>
-      <span class="brand-name">ENARSI Custom Quiz</span>
+      <span class="brand-code">QUIZ</span>
+      <span class="brand-name">Custom Quiz</span>
     </a>
     <div id="timer" class="timer" hidden></div>
   </header>
@@ -31,7 +31,7 @@
         </div>
         <input type="file" id="custom-file" accept=".json,application/json" hidden>
         <div id="load-status" class="load-status" hidden></div>
-        <p class="muted small-print">Supports the array format and the lettered format (<code>options</code> as A/B/C…, <code>correct_answer</code>, <code>images</code>). <a href="data/example.json" download>Download an example file</a>.</p>
+        <p class="muted small-print">Supports multiple choice (array or lettered A/B/C… <code>options</code>), free-text questions (empty <code>options</code>) and <code>images</code>. <a href="data/example.json" download>Download an example file</a>.</p>
       </div>
 
       <div id="topic-section" hidden>
@@ -116,7 +116,7 @@
     <img id="image-viewer-img" alt="">
   </div>
 
-  <footer class="muted">Unofficial study aid. Not affiliated with Cisco.</footer>
+  <footer class="muted">Study aid. Questions come from the file you load.</footer>
 
   <script src="js/app.js"></script>
 </body>

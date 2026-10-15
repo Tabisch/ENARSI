@@ -1,8 +1,8 @@
 (function () {
   "use strict";
 
-  const PASS_PCT = 80; // Cisco does not publish the cut score; 80% is a sensible target.
-  const SECONDS_PER_QUESTION = 120; // ENARSI is roughly 2 minutes per question.
+  const PASS_PCT = 80; // Target score shown on the results page.
+  const SECONDS_PER_QUESTION = 120; // Exam-mode time budget per question.
   const LETTERS = "ABCDEFGH";
   const NUMBER_WORDS = { 2: "two", 3: "three", 4: "four" };
   const MAX_OPTIONS = LETTERS.length;
